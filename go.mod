@@ -1,4 +1,4 @@
-module github.com/zondax/zindexer
+module github.com/Zondax/zindexer
 
 go 1.15
 
