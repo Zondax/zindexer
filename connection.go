@@ -2,20 +2,15 @@ package zindexer
 
 import (
 	"fmt"
-	"log"
-
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
-
-// FIXME: Do we really need this type?
 
 type GormConnection struct {
 	db *gorm.DB
 }
 
-func NewPostgresConnection(params *ConnectionParams) (*GormConnection, error) {
-	log.Println("Creating connection with db")
+func NewPostgresConnection(params *DBConnectionParams) (*GormConnection, error) {
 	dsn, err := params.GetDSN()
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve dsn")
