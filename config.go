@@ -14,7 +14,7 @@ type DBConnectionParams struct {
 }
 
 type DBConnectionConfig struct {
-	gorm.Config
+	gorm *gorm.Config
 }
 
 func (p *DBConnectionParams) GetDSN() (string, error) {

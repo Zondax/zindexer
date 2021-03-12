@@ -16,18 +16,7 @@ func NewPostgresConnection(params *DBConnectionParams, config *DBConnectionConfi
 		return nil, fmt.Errorf("failed to retrieve dsn")
 	}
 
-	conn, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		DisableAutomaticPing:                     config.DisableAutomaticPing,
-		DryRun:                                   config.DryRun,
-		PrepareStmt:                              config.PrepareStmt,
-		NowFunc:                                  config.NowFunc,
-		SkipDefaultTransaction:                   config.SkipDefaultTransaction,
-		NamingStrategy:                           config.NamingStrategy,
-		Logger:                                   config.Logger,
-		DisableNestedTransaction:                 config.DisableNestedTransaction,
-		AllowGlobalUpdate:                        config.AllowGlobalUpdate,
-		DisableForeignKeyConstraintWhenMigrating: config.DisableForeignKeyConstraintWhenMigrating,
-	})
+	conn, err := gorm.Open(postgres.Open(dsn), config.gorm)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to dial connect to db '%s@%s:%s': %v", params.Name, params.Host, params.Port, err)
