@@ -13,18 +13,14 @@ type DBConnectionParams struct {
 	Port     string
 }
 
-type DBConnectionConfig struct {
-	gorm.Config
-}
-
 func (p *DBConnectionParams) GetDSN() (string, error) {
 	return fmt.Sprintf(
 		"user=%s password=%s dbname=%s host=%s port=%s sslmode=disable",
 		p.User, p.Password, p.Name, p.Host, p.Port), nil
 }
 
-func ConnectDB(params DBConnectionParams, config DBConnectionConfig) (*gorm.DB, error) {
-	conn, err := NewPostgresConnection(&params, &config)
+func ConnectDB(params DBConnectionParams) (*gorm.DB, error) {
+	conn, err := NewPostgresConnection(&params)
 	if err != nil {
 		return nil, err
 	}
