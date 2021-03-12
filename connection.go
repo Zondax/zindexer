@@ -10,7 +10,7 @@ type GormConnection struct {
 	db *gorm.DB
 }
 
-func NewPostgresConnection(params *DBConnectionParams, config *DBConnectionConfig) (*GormConnection, error) {
+func NewPostgresConnection(params *DBConnectionParams) (*GormConnection, error) {
 	dsn, err := params.GetDSN()
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve dsn")

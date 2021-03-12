@@ -23,8 +23,8 @@ func (p *DBConnectionParams) GetDSN() (string, error) {
 		p.User, p.Password, p.Name, p.Host, p.Port), nil
 }
 
-func ConnectDB(params DBConnectionParams, config DBConnectionConfig) (*gorm.DB, error) {
-	conn, err := NewPostgresConnection(&params, &config)
+func ConnectDB(params DBConnectionParams) (*gorm.DB, error) {
+	conn, err := NewPostgresConnection(&params)
 	if err != nil {
 		return nil, err
 	}
