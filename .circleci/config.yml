@@ -15,14 +15,19 @@ jobs:
       - image: golang:1.15
     steps:
       - checkout
-      - run: make install_lint
-      - run: make build
+      - run: make install-lint
       - run: make check-modtidy
       - run: make lint
+      - run: make build
 
   integration:
     docker:
       - image: golang:1.15
+      - image: circleci/postgres:13
+        environment:
+          PGPORT: 5433
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword
     steps:
       - checkout
       - run:
@@ -38,9 +43,9 @@ jobs:
           name: "Give time for processes to start"
           command: sleep 3
       - run:
-          name: "Run tests"
+          name: "Run integration tests"
           command: |
-            make test_integration
+            make test-integration
 
 workflows:
   version: 2
@@ -48,7 +53,7 @@ workflows:
     jobs:
       - build
       - checks
-#      - integration:
-#          requires:
-#            - build
-#            - checks
+      - integration:
+          requires:
+            - build
+            - checks

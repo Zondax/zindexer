@@ -1,4 +1,4 @@
-package zindexer
+package common
 
 import "gorm.io/gorm"
 

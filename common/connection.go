@@ -1,4 +1,4 @@
-package zindexer
+package common
 
 import (
 	"fmt"
@@ -16,7 +16,7 @@ func NewPostgresConnection(params *DBConnectionParams, config *DBConnectionConfi
 		return nil, fmt.Errorf("failed to retrieve dsn")
 	}
 
-	conn, err := gorm.Open(postgres.Open(dsn), config.gorm)
+	conn, err := gorm.Open(postgres.Open(dsn), &config.GormConfig)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to dial connect to db '%s@%s:%s': %v", params.Name, params.Host, params.Port, err)
