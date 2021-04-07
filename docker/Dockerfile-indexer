@@ -1,0 +1,10 @@
+# Build stage
+FROM golang:1.15.3-buster AS build
+COPY . /opt/indexer
+RUN cd /opt/indexer && make build && chmod -R 777 zindexer-example
+
+#Execution stage
+FROM ubuntu:20.04
+COPY --from=build /opt/indexer/zindexer-example /usr/bin/
+COPY ./config.yaml /root/.zindexer/example/config.yaml
+CMD zindexer-example start

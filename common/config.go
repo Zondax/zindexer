@@ -1,4 +1,4 @@
-package zindexer
+package common
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ type DBConnectionParams struct {
 }
 
 type DBConnectionConfig struct {
-	gorm *gorm.Config
+	GormConfig gorm.Config
 }
 
 func (p *DBConnectionParams) GetDSN() (string, error) {

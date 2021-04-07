@@ -1,0 +1,19 @@
+version: '3.6'
+services:
+  oasis-indexer:
+    image: zondax/indexer-example:latest
+    container_name: indexer-example
+    profiles: [ "all", "indexer" ]
+    restart: unless-stopped
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - external_network
+
+volumes:
+  db_data:
+
+networks:
+  external_network:
+    external:
+      name: tests_docker_example
