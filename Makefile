@@ -1,11 +1,5 @@
-
-# Constants to override at build time
-PACKAGE := github.com/zondax/zindexer
-REVISION := $(shell git rev-parse --short HEAD)
-APPNAME := zindexer
-
 build:
-	go build -ldflags "-X $(PACKAGE).GitRevision=$(REVISION)" -o $(APPNAME) ./...
+	go build ./...
 
 clean:
 	go clean
