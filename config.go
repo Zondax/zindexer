@@ -13,7 +13,7 @@ type DBConnectionParams struct {
 	Port     string
 }
 
-type DBSubscriptionParams struct {
+type GraphqlClientParams struct {
 	Host  string
 	Token string
 }
