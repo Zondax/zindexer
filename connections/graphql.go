@@ -3,9 +3,14 @@ package connections
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/hasura/go-graphql-client"
+	"go.uber.org/zap"
 	"golang.org/x/oauth2"
+	"time"
 )
+
+const ConnectTimeout = 10 * time.Second
 
 type GraphqlClient struct {
 	Host   string
@@ -29,7 +34,6 @@ func NewGraphqlQueryClient(host string, token string) GraphqlClient {
 }
 
 func (c GraphqlClient) Connect() error {
-	// TODO: Test connection with a dummy query
 	return nil
 }
 
@@ -39,9 +43,14 @@ func NewGraphqlSubscriptionClient(host string, token string) (error, GraphqlSubs
 			"headers": map[string]string{
 				"x-hasura-admin-secret": token,
 			},
-		})
+		}).OnError(onClientError)
 
 	return nil, GraphqlSubscriptionClient{Client: client}
+}
+
+func onClientError(sc *graphql.SubscriptionClient, err error) error {
+	zap.S().Fatalf("Connection error on subscription client: %s", err.Error())
+	return err
 }
 
 func (c GraphqlSubscriptionClient) Subscribe(query interface{}, handler func(message *json.RawMessage, err error) error) error {
@@ -62,11 +71,33 @@ func (c GraphqlSubscriptionClient) Unsubscribe() error {
 }
 
 func (c GraphqlSubscriptionClient) Start() error {
-	err := c.Client.Run()
-	if err != nil {
-		return err
+	errCh := make(chan error)
+	readyCh := make(chan bool)
+
+	c.Client.OnConnected(func() {
+		readyCh <- true
+	})
+
+	go func() {
+		err := c.Client.Run()
+		if err != nil {
+			errCh <- err
+		}
+	}()
+
+	for {
+		select {
+		case err := <-errCh:
+			close(errCh)
+			close(readyCh)
+			return err
+		case <-readyCh:
+			close(readyCh)
+			return nil
+		case <-time.After(ConnectTimeout):
+			return fmt.Errorf("timeout while waiting subscriber client to connect to host")
+		}
 	}
-	return nil
 }
 
 func (c GraphqlSubscriptionClient) Stop() error {
