@@ -9,7 +9,9 @@ import (
 	"time"
 )
 
-const defaultRetryDelay = time.Duration(30 * time.Second)
+const (
+	defaultRetryDelay = 30 * time.Second
+)
 
 type DataTransport struct {
 	// data sources
@@ -69,7 +71,7 @@ func WithNodeClient(node interface{}) TransportOption {
 func WithDataStore(cfg ds.DataStoreConfig) TransportOption {
 	return func(w *DataTransport) {
 		switch cfg.Service {
-		case "minio":
+		case ds.MinIOStorage:
 			c, _ := ds.NewMinioClient(cfg)
 			w.DataStore = ds.DataStoreClient{Client: c}
 			return
