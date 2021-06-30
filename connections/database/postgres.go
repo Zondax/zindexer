@@ -1,4 +1,4 @@
-package connections
+package database
 
 import (
 	"fmt"
@@ -6,6 +6,10 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
+
+type GormConnection struct {
+	db *gorm.DB
+}
 
 func NewPostgresConnection(params *zindexer.DBConnectionParams, config *zindexer.DBConnectionConfig) (*GormConnection, error) {
 	dsn, err := params.GetDSN()

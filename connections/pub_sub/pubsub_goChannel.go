@@ -1,4 +1,4 @@
-package connections
+package pub_sub
 
 import (
 	"context"
