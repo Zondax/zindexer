@@ -6,7 +6,10 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"go.uber.org/zap"
+	"os"
 )
+
+const MinIOStorage = "minio"
 
 type MinioClient struct {
 	client *minio.Client
@@ -55,6 +58,21 @@ func (c MinioClient) List(bucket string, prefix string) *[]string {
 }
 
 func (c MinioClient) UploadFile(name string, dest string) error {
-	// TODO
+	file, err := os.Open(name)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	fileStat, err := file.Stat()
+	if err != nil {
+		return err
+	}
+
+	_, err = c.client.PutObject(context.Background(), dest, file.Name(), file,
+		fileStat.Size(), minio.PutObjectOptions{ContentType: "application/octet-stream"})
+	if err != nil {
+		return err
+	}
 	return nil
 }
