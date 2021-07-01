@@ -2,7 +2,6 @@ package database
 
 import (
 	"fmt"
-	"github.com/Zondax/zindexer"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -11,7 +10,11 @@ type GormConnection struct {
 	db *gorm.DB
 }
 
-func NewPostgresConnection(params *zindexer.DBConnectionParams, config *zindexer.DBConnectionConfig) (*GormConnection, error) {
+type DBConnectionConfig struct {
+	Gorm *gorm.Config
+}
+
+func NewPostgresConnection(params *DBConnectionParams, config *DBConnectionConfig) (*GormConnection, error) {
 	dsn, err := params.GetDSN()
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve dsn")
@@ -32,7 +35,7 @@ func (c *GormConnection) GetDB() *gorm.DB {
 	return c.db
 }
 
-func ConnectDB(params zindexer.DBConnectionParams, config zindexer.DBConnectionConfig) (*gorm.DB, error) {
+func ConnectDB(params DBConnectionParams, config DBConnectionConfig) (*gorm.DB, error) {
 	conn, err := NewPostgresConnection(&params, &config)
 	if err != nil {
 		return nil, err
