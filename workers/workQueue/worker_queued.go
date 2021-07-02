@@ -11,7 +11,7 @@ type QueuedWorker struct {
 	Worker IQueuedWorker
 }
 
-type WorkerConstructor func(string, cn.DataTransport, chan chan Work) QueuedWorker
+type WorkerConstructor func(string, cn.DataSource, chan chan Work) QueuedWorker
 
 type Work struct {
 	JobId  int64

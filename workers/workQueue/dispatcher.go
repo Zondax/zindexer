@@ -34,10 +34,10 @@ func NewJobDispatcher(cfg DispatcherConfig) JobDispatcher {
 	return d
 }
 
-func (j JobDispatcher) BuildWorkers(count int, dataTransport connections.DataTransport, constructor WorkerConstructor) {
+func (j JobDispatcher) BuildWorkers(count int, dataSource connections.DataSource, constructor WorkerConstructor) {
 	for i := 0; i < count; i++ {
 		workerId := fmt.Sprintf("worker.%d", i)
-		worker := constructor(workerId, dataTransport, j.workerChannel)
+		worker := constructor(workerId, dataSource, j.workerChannel)
 		worker.Worker.Start()
 	}
 }

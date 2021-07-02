@@ -13,7 +13,7 @@ const (
 	defaultRetryDelay = 30 * time.Second
 )
 
-type DataTransport struct {
+type DataSource struct {
 	// data sources
 	DbConn        *gorm.DB
 	RosettaClient *client.APIClient
@@ -24,10 +24,10 @@ type DataTransport struct {
 	RetryDelay time.Duration
 }
 
-type TransportOption func(*DataTransport)
+type SourceOption func(*DataSource)
 
-func NewDataTransport(opts ...TransportOption) DataTransport {
-	d := DataTransport{
+func NewDataSource(opts ...SourceOption) DataSource {
+	d := DataSource{
 		Ctx:        context.Background(),
 		RetryDelay: defaultRetryDelay,
 	}
@@ -38,38 +38,38 @@ func NewDataTransport(opts ...TransportOption) DataTransport {
 	return d
 }
 
-func WithContext(ctx context.Context) TransportOption {
-	return func(w *DataTransport) {
+func WithContext(ctx context.Context) SourceOption {
+	return func(w *DataSource) {
 		w.Ctx = ctx
 	}
 }
 
-func WithRetryDelay(delay time.Duration) TransportOption {
-	return func(w *DataTransport) {
+func WithRetryDelay(delay time.Duration) SourceOption {
+	return func(w *DataSource) {
 		w.RetryDelay = delay
 	}
 }
 
-func WithDBConnection(dbConn *gorm.DB) TransportOption {
-	return func(w *DataTransport) {
+func WithDBConnection(dbConn *gorm.DB) SourceOption {
+	return func(w *DataSource) {
 		w.DbConn = dbConn
 	}
 }
 
-func WithRosettaClient(client *client.APIClient) TransportOption {
-	return func(w *DataTransport) {
+func WithRosettaClient(client *client.APIClient) SourceOption {
+	return func(w *DataSource) {
 		w.RosettaClient = client
 	}
 }
 
-func WithNodeClient(node interface{}) TransportOption {
-	return func(w *DataTransport) {
+func WithNodeClient(node interface{}) SourceOption {
+	return func(w *DataSource) {
 		w.NodeClient = node
 	}
 }
 
-func WithDataStore(cfg ds.DataStoreConfig) TransportOption {
-	return func(w *DataTransport) {
+func WithDataStore(cfg ds.DataStoreConfig) SourceOption {
+	return func(w *DataSource) {
 		switch cfg.Service {
 		case ds.MinIOStorage:
 			c, _ := ds.NewMinioClient(cfg)
