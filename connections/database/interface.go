@@ -1,9 +1,22 @@
-package zindexer
+package database
 
 import (
 	"fmt"
 	"gorm.io/gorm"
 )
+
+type DBConnection interface {
+	GetDB() *gorm.DB
+}
+
+type IDBQueryClient interface {
+	Connect() error
+	GetDB() interface{}
+}
+
+type DBQueryClient struct {
+	Client IDBQueryClient
+}
 
 type DBConnectionParams struct {
 	User     string
@@ -16,10 +29,6 @@ type DBConnectionParams struct {
 type GraphqlClientParams struct {
 	Host  string
 	Token string
-}
-
-type DBConnectionConfig struct {
-	Gorm *gorm.Config
 }
 
 func (p *DBConnectionParams) GetDSN() (string, error) {
