@@ -2,7 +2,6 @@ package WorkQueue
 
 import (
 	"fmt"
-	"github.com/Zondax/zindexer/connections"
 	"go.uber.org/zap"
 	"time"
 )
@@ -34,10 +33,10 @@ func NewJobDispatcher(cfg DispatcherConfig) JobDispatcher {
 	return d
 }
 
-func (j JobDispatcher) BuildWorkers(count int, dataSource connections.DataSource, constructor WorkerConstructor) {
+func (j JobDispatcher) BuildWorkers(count int, constructor WorkerConstructor) {
 	for i := 0; i < count; i++ {
 		workerId := fmt.Sprintf("worker.%d", i)
-		worker := constructor(workerId, dataSource, j.workerChannel)
+		worker := constructor(workerId, j.workerChannel)
 		worker.Worker.Start()
 	}
 }
@@ -55,6 +54,10 @@ func (j JobDispatcher) Start() {
 
 		j.input <- work
 	}
+}
+
+func (j JobDispatcher) EnqueueWork(w Work) {
+	j.jobPool.EnqueueJob(w)
 }
 
 func (j JobDispatcher) dispatch() {

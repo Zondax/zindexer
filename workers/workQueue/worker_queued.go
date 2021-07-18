@@ -1,7 +1,5 @@
 package WorkQueue
 
-import cn "github.com/Zondax/zindexer/connections"
-
 type IQueuedWorker interface {
 	Start()
 	DoWork(Work)
@@ -11,7 +9,7 @@ type QueuedWorker struct {
 	Worker IQueuedWorker
 }
 
-type WorkerConstructor func(string, cn.DataSource, chan chan Work) QueuedWorker
+type WorkerConstructor func(string, chan chan Work) QueuedWorker
 
 type Work struct {
 	JobId  int64
