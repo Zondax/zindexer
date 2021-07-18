@@ -15,7 +15,7 @@ type MinioClient struct {
 	client *minio.Client
 }
 
-func NewMinioClient(config DataStoreConfig) (MinioClient, error) {
+func newMinioClient(config DataStoreConfig) (MinioClient, error) {
 	minioClient, err := minio.New(config.Url, &minio.Options{
 		Creds:  credentials.NewStaticV4(config.User, config.Password, ""),
 		Secure: true,

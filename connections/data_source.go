@@ -2,7 +2,6 @@ package connections
 
 import (
 	"context"
-	"fmt"
 	ds "github.com/Zondax/zindexer/connections/data_store"
 	"github.com/coinbase/rosetta-sdk-go/client"
 	"gorm.io/gorm"
@@ -70,13 +69,10 @@ func WithNodeClient(node interface{}) SourceOption {
 
 func WithDataStore(cfg ds.DataStoreConfig) SourceOption {
 	return func(w *DataSource) {
-		switch cfg.Service {
-		case ds.MinIOStorage:
-			c, _ := ds.NewMinioClient(cfg)
-			w.DataStore = ds.DataStoreClient{Client: c}
-			return
-		default:
-			panic(fmt.Errorf("DataStore with service %s, is not available", cfg.Service))
+		client, err := ds.NewDataStoreClient(cfg)
+		if err != nil {
+			panic(err)
 		}
+		w.DataStore = client
 	}
 }
