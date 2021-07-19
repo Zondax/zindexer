@@ -15,14 +15,10 @@ type PoolConfig struct {
 	EndHeight   int64
 }
 
-func NewJobPool(c PoolConfig) *IndexJobPool {
+func NewJobPool() *IndexJobPool {
 	pool := &IndexJobPool{
 		mutex: sync.Mutex{},
 		queue: queue.New(),
-	}
-
-	for i := c.StartHeight; i <= c.EndHeight; i++ {
-		pool.queue.Add(Work{JobId: i})
 	}
 
 	return pool

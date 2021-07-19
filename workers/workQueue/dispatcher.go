@@ -6,37 +6,42 @@ import (
 	"time"
 )
 
+const DefaultRetryTimeout = 60 * time.Second
+
 type JobDispatcher struct {
-	jobPool       *IndexJobPool
-	input         chan Work // channel to receive work
-	end           chan bool // channel to spin down workers
-	workerChannel chan chan Work
+	retryTimeout   time.Duration
+	jobPool        *IndexJobPool
+	inputChan      chan Work      // channel to receive work
+	endChan        chan bool      // channel to spin down workers
+	workerChan     chan chan Work // channel to send work to workers
+	EmptyQueueChan chan bool      // channel to communicate that queue was consumed
 }
 
 type DispatcherConfig struct {
-	StartIndex int64
-	EndIndex   int64
-	JobsTopic  string
+	JobsTopic string
 }
 
-func NewJobDispatcher(cfg DispatcherConfig) JobDispatcher {
+func NewJobDispatcher() JobDispatcher {
 	d := JobDispatcher{
-		jobPool: NewJobPool(PoolConfig{
-			StartHeight: cfg.StartIndex,
-			EndHeight:   cfg.EndIndex,
-		}),
-		workerChannel: make(chan chan Work),
-		input:         make(chan Work),
-		end:           make(chan bool),
+		retryTimeout:   DefaultRetryTimeout,
+		jobPool:        NewJobPool(),
+		workerChan:     make(chan chan Work),
+		inputChan:      make(chan Work),
+		endChan:        make(chan bool),
+		EmptyQueueChan: make(chan bool),
 	}
 
 	return d
 }
 
+func (j JobDispatcher) SetRetryTimeout(timeout time.Duration) {
+	j.retryTimeout = timeout
+}
+
 func (j JobDispatcher) BuildWorkers(count int, constructor WorkerConstructor) {
 	for i := 0; i < count; i++ {
 		workerId := fmt.Sprintf("worker.%d", i)
-		worker := constructor(workerId, j.workerChannel)
+		worker := constructor(workerId, j.workerChan)
 		worker.Worker.Start()
 	}
 }
@@ -48,11 +53,12 @@ func (j JobDispatcher) Start() {
 		work := j.jobPool.GetNewJob()
 		if work.JobId == -1 {
 			zap.S().Infof("*** No more jobs on JobPool, waiting.... ***")
-			time.Sleep(60 * time.Second)
+			j.EmptyQueueChan <- true
+			time.Sleep(j.retryTimeout)
 			continue
 		}
 
-		j.input <- work
+		j.inputChan <- work
 	}
 }
 
@@ -64,12 +70,12 @@ func (j JobDispatcher) dispatch() {
 	go func() {
 		for {
 			select {
-			case <-j.end:
-				fmt.Println("JobDispatcher received 'end'")
+			case <-j.endChan:
+				fmt.Println("JobDispatcher received 'endChan'")
 				return
-			case work := <-j.input:
-				worker := <-j.workerChannel // wait for available channel
-				worker <- work              // dispatch work to worker
+			case work := <-j.inputChan:
+				worker := <-j.workerChan // wait for available channel
+				worker <- work           // dispatch work to worker
 			}
 		}
 	}()
