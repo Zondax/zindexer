@@ -20,6 +20,10 @@ type GraphqlClient struct {
 type GraphqlSubscriptionClient struct {
 	Client *graphql.SubscriptionClient
 	Id     string
+	// state
+	errChan   chan error
+	readyChan chan bool
+	connected bool
 }
 
 func NewGraphqlQueryClient(host string, token string) GraphqlClient {
@@ -45,7 +49,29 @@ func NewGraphqlSubscriptionClient(host string, token string) (error, GraphqlSubs
 			},
 		}).OnError(onClientError)
 
-	return nil, GraphqlSubscriptionClient{Client: client}
+	subClient := GraphqlSubscriptionClient{
+		Client:    client,
+		errChan:   make(chan error),
+		readyChan: make(chan bool),
+		connected: false,
+	}
+
+	client.OnConnected(subClient.onClientConnected)
+	client.OnDisconnected(subClient.onClientDisconnected)
+
+	return nil, subClient
+}
+
+func (c GraphqlSubscriptionClient) onClientConnected() {
+	zap.S().Infof("Graphql client connected")
+	c.connected = true
+	c.readyChan <- true
+}
+
+func (c GraphqlSubscriptionClient) onClientDisconnected() {
+	zap.S().Warnf("Graphql client disconnected")
+	c.connected = false
+	c.readyChan <- false
 }
 
 func onClientError(sc *graphql.SubscriptionClient, err error) error {
@@ -71,28 +97,18 @@ func (c GraphqlSubscriptionClient) Unsubscribe() error {
 }
 
 func (c GraphqlSubscriptionClient) Start() error {
-	errCh := make(chan error)
-	readyCh := make(chan bool)
-
-	c.Client.OnConnected(func() {
-		readyCh <- true
-	})
-
 	go func() {
 		err := c.Client.Run()
 		if err != nil {
-			errCh <- err
+			c.errChan <- err
 		}
 	}()
 
 	for {
 		select {
-		case err := <-errCh:
-			close(errCh)
-			close(readyCh)
+		case err := <-c.errChan:
 			return err
-		case <-readyCh:
-			close(readyCh)
+		case <-c.readyChan:
 			return nil
 		case <-time.After(ConnectTimeout):
 			return fmt.Errorf("timeout while waiting subscriber client to connect to host")
@@ -101,9 +117,9 @@ func (c GraphqlSubscriptionClient) Start() error {
 }
 
 func (c GraphqlSubscriptionClient) Stop() error {
-	err := c.Client.Close()
-	if err != nil {
-		return err
-	}
-	return nil
+	return c.Client.Close()
+}
+
+func (c GraphqlSubscriptionClient) GetState() bool {
+	return c.connected
 }
