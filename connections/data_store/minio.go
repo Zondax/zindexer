@@ -50,7 +50,7 @@ func (c MinioClient) GetFile(object string, bucket string) (*[]byte, error) {
 
 func (c MinioClient) List(bucket string, prefix string) *[]string {
 	var list []string
-	for object := range c.client.ListObjects(context.Background(), bucket, minio.ListObjectsOptions{Prefix: prefix}) {
+	for object := range c.client.ListObjects(context.Background(), bucket, minio.ListObjectsOptions{Prefix: prefix, Recursive: true}) {
 		list = append(list, object.Key)
 	}
 
