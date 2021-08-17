@@ -3,7 +3,18 @@ package database
 import (
 	"fmt"
 	"gorm.io/gorm"
+	"net/http"
 )
+
+type AuthHeaderTransport struct {
+	Transport http.RoundTripper
+	Token     string
+}
+
+func (adt AuthHeaderTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req.Header.Add("x-hasura-admin-secret", adt.Token)
+	return adt.Transport.RoundTrip(req)
+}
 
 type DBConnection interface {
 	GetDB() *gorm.DB
