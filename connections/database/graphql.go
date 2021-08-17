@@ -1,12 +1,11 @@
 package database
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/hasura/go-graphql-client"
 	"go.uber.org/zap"
-	"golang.org/x/oauth2"
+	"net/http"
 	"time"
 )
 
@@ -27,13 +26,15 @@ type GraphqlSubscriptionClient struct {
 }
 
 func NewGraphqlQueryClient(host string, token string) GraphqlClient {
-	src := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: token},
-	)
-	httpClient := oauth2.NewClient(context.Background(), src)
+	transport := http.DefaultTransport
+	if token != "" {
+		transport = AuthHeaderTransport{Transport: http.DefaultTransport, Token: token}
+	}
+
+	customHttpClient := http.Client{Transport: transport}
 	return GraphqlClient{
 		Host:   host,
-		Client: graphql.NewClient(host, httpClient),
+		Client: graphql.NewClient(host, &customHttpClient),
 	}
 }
 
