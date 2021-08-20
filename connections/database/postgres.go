@@ -14,13 +14,17 @@ type DBConnectionConfig struct {
 	Gorm *gorm.Config
 }
 
-func NewPostgresConnection(params *DBConnectionParams, config *DBConnectionConfig) (*GormConnection, error) {
+func NewPostgresConnection(params *DBConnectionParams, config DBConnectionConfig) (*GormConnection, error) {
 	dsn, err := params.GetDSN()
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve dsn")
 	}
 
-	conn, err := gorm.Open(postgres.Open(dsn), config.Gorm)
+	var dbConfig gorm.Config
+	if config.Gorm != nil {
+		dbConfig = *config.Gorm
+	}
+	conn, err := gorm.Open(postgres.Open(dsn), &dbConfig)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to dial connect to db '%s@%s:%s': %v", params.Name, params.Host, params.Port, err)
@@ -36,7 +40,7 @@ func (c *GormConnection) GetDB() *gorm.DB {
 }
 
 func ConnectDB(params DBConnectionParams, config DBConnectionConfig) (*gorm.DB, error) {
-	conn, err := NewPostgresConnection(&params, &config)
+	conn, err := NewPostgresConnection(&params, config)
 	if err != nil {
 		return nil, err
 	}
