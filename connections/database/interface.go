@@ -2,8 +2,10 @@ package database
 
 import (
 	"fmt"
-	"gorm.io/gorm"
 	"net/http"
+
+	"go.mongodb.org/mongo-driver/mongo"
+	"gorm.io/gorm"
 )
 
 type AuthHeaderTransport struct {
@@ -26,7 +28,8 @@ type IDBQueryClient interface {
 }
 
 type DBQueryClient struct {
-	Client IDBQueryClient
+	Client *mongo.Client
+	Params *DBConnectionParams
 }
 
 type DBConnectionParams struct {
@@ -35,6 +38,7 @@ type DBConnectionParams struct {
 	Name     string
 	Host     string
 	Port     string
+	URI      string
 }
 
 type GraphqlClientParams struct {
