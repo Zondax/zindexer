@@ -22,3 +22,9 @@ lint:
 
 test: build
 	go test -race ./...
+
+install-deps:
+	go get ./...
+
+test-mongo: install-deps
+	cd ./connections/database && go test
