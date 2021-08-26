@@ -43,16 +43,15 @@ test: build
 test-database: build
 	go test ./connections/database/... -v
 
-# Docker
-
-test-database-services:
-	docker-compose -f tests_docker/test_database.yml up --abort-on-container-exit
-
 test-integration:
 	go test -race -p 1 -v -tags=integration ./...
 
+
 ###############################
 # DOCKER
+
+test-database-services:
+	docker-compose -f tests_docker/test_database.yml up --abort-on-container-exit
 
 build-docker:
 	docker build -f $(DOCKERFILE_INDEXER) -t $(DOCKER_IMAGE_INDEXER) .
