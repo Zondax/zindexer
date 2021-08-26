@@ -15,10 +15,10 @@ jobs:
       - image: golang:1.16
     steps:
       - checkout
-      - run: make install_lint
-      - run: make build
+      - run: make install-lint
       - run: make check-modtidy
       - run: make lint
+      - run: make build
 
   integration:
     machine:

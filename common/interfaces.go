@@ -1,4 +1,4 @@
-package zindexer
+package common
 
 // IndexingWorker interface
 type IndexingWorker interface {
