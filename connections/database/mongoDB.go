@@ -11,10 +11,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-type MongoConnection struct {
-	db *mongo.Client
-}
-
 func (c *DBQueryClient) Connect() error {
 	uri := os.Getenv("MONGO_URI")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

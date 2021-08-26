@@ -21,26 +21,14 @@ jobs:
       - run: make lint
 
   integration:
-    docker:
-      - image: golang:1.16
+    machine:
+      image: ubuntu-2004:202104-01 
     steps:
       - checkout
       - run:
-          name: "Prebuild"
+          name: "Run database tests"
           command: |
-            echo "Prebuild..."
-      - run:
-          name: "Launch background processes"
-          background: true
-          command: |
-            echo "Starting executables we need in background"
-      - run:
-          name: "Give time for processes to start"
-          command: sleep 3
-      - run:
-          name: "Run tests"
-          command: |
-            make test_integration
+            make test-database-services
 
 workflows:
   version: 2
@@ -48,7 +36,7 @@ workflows:
     jobs:
       - build
       - checks
-#      - integration:
-#          requires:
-#            - build
-#            - checks
+      - integration:
+          requires:
+            - build
+            - checks
