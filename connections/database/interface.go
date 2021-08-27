@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/gorm"
 )
 
@@ -23,13 +22,12 @@ type DBConnection interface {
 }
 
 type IDBQueryClient interface {
-	Connect() error
 	GetDB() interface{}
+	Connect() error
 }
 
 type DBQueryClient struct {
-	Client *mongo.Client
-	Params *DBConnectionParams
+	Client IDBQueryClient
 }
 
 type DBConnectionParams struct {

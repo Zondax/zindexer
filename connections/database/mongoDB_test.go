@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -12,13 +13,14 @@ import (
 
 func TestBuffer_InsertRead(t *testing.T) {
 	var c DBQueryClient
-	err := c.Connect()
+	params := &DBConnectionParams{URI: os.Getenv("MONGO_URI")}
+	client, err := c.Connect(params)
 	if err != nil {
 		fmt.Println(err)
 		t.Fail()
 	}
 
-	coll := c.Client.Database("test").Collection("sample")
+	coll := client.Database("test").Collection("sample")
 	res, err := coll.InsertOne(context.TODO(), bson.D{{Key: "name", Value: "Alice"}})
 	if err != nil {
 		fmt.Println(err)

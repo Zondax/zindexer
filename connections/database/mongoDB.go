@@ -3,7 +3,6 @@ package database
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -11,31 +10,39 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-func (c *DBQueryClient) Connect() error {
-	uri := os.Getenv("MONGO_URI")
+type MongoConnection struct {
+	db *mongo.Client
+}
+
+func NewMongoConnection(params *DBConnectionParams) (*MongoConnection, error) {
+	uri := params.URI
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
 	if err != nil {
-		fmt.Println("Failed to connect to db")
+		fmt.Printf("Failed to connect to db: %v \n", err)
+		return nil, err
 	}
 
 	// Ping the primary
 	if err := client.Ping(ctx, readpref.Primary()); err != nil {
-		fmt.Println("Failed to ping after connecting to the db")
+		return nil, err
 	}
 	fmt.Println("Successfully connected and pinged.")
 
-	c.Client = client
-	return err
+	return &MongoConnection{db: client}, nil
 }
 
-func (c *DBQueryClient) GetDB() *mongo.Client {
-	err := c.Connect()
+func (c *MongoConnection) GetDB() *mongo.Client {
+	return c.db
+}
+
+func (c *DBQueryClient) Connect(params *DBConnectionParams) (*mongo.Client, error) {
+	conn, err := NewMongoConnection(params)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return c.Client
+	return conn.GetDB(), nil
 }
