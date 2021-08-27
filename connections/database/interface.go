@@ -2,8 +2,9 @@ package database
 
 import (
 	"fmt"
-	"gorm.io/gorm"
 	"net/http"
+
+	"gorm.io/gorm"
 )
 
 type AuthHeaderTransport struct {
@@ -21,8 +22,8 @@ type DBConnection interface {
 }
 
 type IDBQueryClient interface {
-	Connect() error
 	GetDB() interface{}
+	Connect() error
 }
 
 type DBQueryClient struct {
@@ -35,6 +36,7 @@ type DBConnectionParams struct {
 	Name     string
 	Host     string
 	Port     string
+	URI      string
 }
 
 type GraphqlClientParams struct {

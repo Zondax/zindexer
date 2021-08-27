@@ -22,3 +22,12 @@ lint:
 
 test: build
 	go test -race ./...
+
+test-database: build
+	go test ./connections/database/... -v
+
+# Docker
+
+test-database-services:
+	docker-compose -f tests_docker/test_database.yml up --abort-on-container-exit
+

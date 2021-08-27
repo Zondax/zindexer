@@ -1,0 +1,28 @@
+version: "3.9"
+networks:
+  dbNetwork:
+    driver: bridge
+
+services:
+  mongodb:
+    image: mongo:latest
+    logging:
+      driver: none
+    networks:
+      - dbNetwork
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo
+      MONGO_INITDB_ROOT_PASSWORD: password
+
+  goapp:
+    image: golang:latest
+    depends_on:
+      - mongodb
+    networks:
+      - dbNetwork
+    volumes:
+      - ./../:/app
+    working_dir: /app
+    environment:
+      MONGO_URI: mongodb://mongo:password@mongodb:27017/
+    entrypoint: ["make", "test-database"]
