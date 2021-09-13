@@ -3,6 +3,7 @@ package connections
 import (
 	"context"
 	ds "github.com/Zondax/zindexer/connections/data_store"
+	db "github.com/Zondax/zindexer/connections/database"
 	"github.com/coinbase/rosetta-sdk-go/client"
 	"gorm.io/gorm"
 	"time"
@@ -18,6 +19,7 @@ type DataSource struct {
 	RosettaClient *client.APIClient
 	NodeClient    interface{}
 	DataStore     ds.DataStoreClient
+	DataBase      db.DBQueryClient
 	// common
 	Ctx        context.Context
 	RetryDelay time.Duration

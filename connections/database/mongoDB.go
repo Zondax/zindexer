@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -21,7 +22,6 @@ func NewMongoConnection(params *DBConnectionParams) (*MongoConnection, error) {
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
 	if err != nil {
-		fmt.Printf("Failed to connect to db: %v \n", err)
 		return nil, err
 	}
 
@@ -29,7 +29,6 @@ func NewMongoConnection(params *DBConnectionParams) (*MongoConnection, error) {
 	if err := client.Ping(ctx, readpref.Primary()); err != nil {
 		return nil, err
 	}
-	fmt.Println("Successfully connected and pinged.")
 
 	return &MongoConnection{db: client}, nil
 }
@@ -45,4 +44,26 @@ func (c *DBQueryClient) Connect(params *DBConnectionParams) (*mongo.Client, erro
 	}
 
 	return conn.GetDB(), nil
+}
+
+func (c *DBQueryClient) GetMongoDoc(collection *mongo.Collection, docId string) (bson.M, error) {
+	fmt.Printf("document with id:%v \n", docId)
+	opts := options.FindOne()
+	var result bson.M
+	readErr := collection.FindOne(
+		context.TODO(),
+		bson.D{{Key: "_id", Value: docId}},
+		opts,
+	).Decode(&result)
+
+	if readErr != nil {
+		// ErrNoDocuments means that the filter did not match any documents in
+		// the collection.
+		if readErr == mongo.ErrNoDocuments {
+			return nil, fmt.Errorf("No document found")
+		}
+		return nil, readErr
+	}
+
+	return result, nil
 }

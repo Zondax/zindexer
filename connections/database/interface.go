@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/gorm"
 )
 
@@ -24,6 +26,7 @@ type DBConnection interface {
 type IDBQueryClient interface {
 	GetDB() interface{}
 	Connect() error
+	GetMongoDoc(collection *mongo.Collection, docId string) (bson.M, error)
 }
 
 type DBQueryClient struct {
