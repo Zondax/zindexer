@@ -3,8 +3,6 @@ package database
 import (
 	"fmt"
 	"net/http"
-
-	"gorm.io/gorm"
 )
 
 type AuthHeaderTransport struct {
@@ -15,19 +13,6 @@ type AuthHeaderTransport struct {
 func (adt AuthHeaderTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	req.Header.Add("x-hasura-admin-secret", adt.Token)
 	return adt.Transport.RoundTrip(req)
-}
-
-type DBConnection interface {
-	GetDB() *gorm.DB
-}
-
-type IDBQueryClient interface {
-	GetDB() interface{}
-	Connect() error
-}
-
-type DBQueryClient struct {
-	Client IDBQueryClient
 }
 
 type DBConnectionParams struct {

@@ -4,6 +4,7 @@ import (
 	"context"
 	ds "github.com/Zondax/zindexer/connections/data_store"
 	"github.com/coinbase/rosetta-sdk-go/client"
+	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/gorm"
 	"time"
 )
@@ -14,10 +15,11 @@ const (
 
 type DataSource struct {
 	// data sources
-	DbConn        *gorm.DB
-	RosettaClient *client.APIClient
-	NodeClient    interface{}
-	DataStore     ds.DataStoreClient
+	DatabasePostgres *gorm.DB
+	DatabaseMongo    *mongo.Client
+	RosettaClient    *client.APIClient
+	NodeClient       interface{}
+	DataStore        ds.DataStoreClient
 	// common
 	Ctx        context.Context
 	RetryDelay time.Duration
@@ -49,9 +51,15 @@ func WithRetryDelay(delay time.Duration) SourceOption {
 	}
 }
 
-func WithDBConnection(dbConn *gorm.DB) SourceOption {
+func WithPostgresDB(dbConn *gorm.DB) SourceOption {
 	return func(w *DataSource) {
-		w.DbConn = dbConn
+		w.DatabasePostgres = dbConn
+	}
+}
+
+func WithMongoDB(dbConn *mongo.Client) SourceOption {
+	return func(w *DataSource) {
+		w.DatabaseMongo = dbConn
 	}
 }
 
@@ -69,10 +77,10 @@ func WithNodeClient(node interface{}) SourceOption {
 
 func WithDataStore(cfg ds.DataStoreConfig) SourceOption {
 	return func(w *DataSource) {
-		client, err := ds.NewDataStoreClient(cfg)
+		storeClient, err := ds.NewDataStoreClient(cfg)
 		if err != nil {
 			panic(err)
 		}
-		w.DataStore = client
+		w.DataStore = storeClient
 	}
 }
