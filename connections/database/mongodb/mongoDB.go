@@ -1,8 +1,10 @@
-package database
+package mongodb
 
 import (
 	"context"
 	"fmt"
+	"github.com/Zondax/zindexer/connections/database"
+	"go.uber.org/zap"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -15,7 +17,7 @@ type MongoConnection struct {
 	db *mongo.Client
 }
 
-func NewMongoConnection(params *DBConnectionParams) (*MongoConnection, error) {
+func NewMongoConnection(params *database.DBConnectionParams) (*MongoConnection, error) {
 	uri := params.URI
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -37,7 +39,7 @@ func (c *MongoConnection) GetDB() *mongo.Client {
 	return c.db
 }
 
-func (c *DBQueryClient) Connect(params *DBConnectionParams) (*mongo.Client, error) {
+func Connect(params *database.DBConnectionParams) (*mongo.Client, error) {
 	conn, err := NewMongoConnection(params)
 	if err != nil {
 		return nil, err
@@ -46,8 +48,8 @@ func (c *DBQueryClient) Connect(params *DBConnectionParams) (*mongo.Client, erro
 	return conn.GetDB(), nil
 }
 
-func (c *DBQueryClient) GetMongoDoc(collection *mongo.Collection, docId string) (bson.M, error) {
-	fmt.Printf("document with id:%v \n", docId)
+func (c *MongoConnection) GetMongoDoc(collection *mongo.Collection, docId string) (bson.M, error) {
+	zap.S().Debug("document with id:%v \n", docId)
 	opts := options.FindOne()
 	var result bson.M
 	readErr := collection.FindOne(
@@ -60,7 +62,7 @@ func (c *DBQueryClient) GetMongoDoc(collection *mongo.Collection, docId string) 
 		// ErrNoDocuments means that the filter did not match any documents in
 		// the collection.
 		if readErr == mongo.ErrNoDocuments {
-			return nil, fmt.Errorf("No document found")
+			return nil, fmt.Errorf("no document found")
 		}
 		return nil, readErr
 	}

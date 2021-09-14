@@ -1,8 +1,9 @@
-package database
+package graphql
 
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Zondax/zindexer/connections/database"
 	"github.com/hasura/go-graphql-client"
 	"go.uber.org/zap"
 	"net/http"
@@ -28,7 +29,7 @@ type GraphqlSubscriptionClient struct {
 func NewGraphqlQueryClient(host string, token string) GraphqlClient {
 	transport := http.DefaultTransport
 	if token != "" {
-		transport = AuthHeaderTransport{Transport: http.DefaultTransport, Token: token}
+		transport = database.AuthHeaderTransport{Transport: http.DefaultTransport, Token: token}
 	}
 
 	customHttpClient := http.Client{Transport: transport}
