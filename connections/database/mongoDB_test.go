@@ -2,11 +2,11 @@ package database
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson"
 	"os"
 	"testing"
-	"crypto/rand"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestBuffer_InsertRead(t *testing.T) {
@@ -32,8 +32,8 @@ func TestBuffer_InsertRead(t *testing.T) {
 	if err != nil {
 		fmt.Printf("Failed to get with error %v", err)
 		t.Fail()
-		return 
+		return
 	}
-	
+
 	fmt.Printf("found document %v\n", result)
 }
