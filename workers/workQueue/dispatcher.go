@@ -21,7 +21,7 @@ type DispatcherConfig struct {
 	JobsTopic string
 }
 
-func NewJobDispatcher() JobDispatcher {
+func NewJobDispatcher() *JobDispatcher {
 	d := JobDispatcher{
 		retryTimeout:   DefaultRetryTimeout,
 		jobPool:        NewJobPool(),
@@ -31,14 +31,14 @@ func NewJobDispatcher() JobDispatcher {
 		EmptyQueueChan: make(chan bool),
 	}
 
-	return d
+	return &d
 }
 
-func (j JobDispatcher) SetRetryTimeout(timeout time.Duration) {
+func (j *JobDispatcher) SetRetryTimeout(timeout time.Duration) {
 	j.retryTimeout = timeout
 }
 
-func (j JobDispatcher) BuildWorkers(count int, constructor WorkerConstructor) {
+func (j *JobDispatcher) BuildWorkers(count int, constructor WorkerConstructor) {
 	for i := 0; i < count; i++ {
 		workerId := fmt.Sprintf("worker.%d", i)
 		worker := constructor(workerId, j.workerChan)
@@ -47,7 +47,7 @@ func (j JobDispatcher) BuildWorkers(count int, constructor WorkerConstructor) {
 }
 
 // TODO listen for incoming jobs on JobsTopic
-func (j JobDispatcher) Start() {
+func (j *JobDispatcher) Start() {
 	j.dispatch()
 	for {
 		work := j.jobPool.GetNewJob()
@@ -62,11 +62,11 @@ func (j JobDispatcher) Start() {
 	}
 }
 
-func (j JobDispatcher) EnqueueWork(w Work) {
+func (j *JobDispatcher) EnqueueWork(w Work) {
 	j.jobPool.EnqueueJob(w)
 }
 
-func (j JobDispatcher) dispatch() {
+func (j *JobDispatcher) dispatch() {
 	go func() {
 		for {
 			select {

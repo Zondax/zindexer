@@ -26,24 +26,24 @@ type GraphqlSubscriptionClient struct {
 	connected bool
 }
 
-func NewGraphqlQueryClient(host string, token string) GraphqlClient {
+func NewGraphqlQueryClient(host string, token string) *GraphqlClient {
 	transport := http.DefaultTransport
 	if token != "" {
 		transport = database.AuthHeaderTransport{Transport: http.DefaultTransport, Token: token}
 	}
 
 	customHttpClient := http.Client{Transport: transport}
-	return GraphqlClient{
+	return &GraphqlClient{
 		Host:   host,
 		Client: graphql.NewClient(host, &customHttpClient),
 	}
 }
 
-func (c GraphqlClient) Connect() error {
+func (c *GraphqlClient) Connect() error {
 	return nil
 }
 
-func NewGraphqlSubscriptionClient(host string, token string) (error, GraphqlSubscriptionClient) {
+func NewGraphqlSubscriptionClient(host string, token string) (error, *GraphqlSubscriptionClient) {
 	client := graphql.NewSubscriptionClient(host).
 		WithConnectionParams(map[string]interface{}{
 			"headers": map[string]string{
@@ -51,7 +51,7 @@ func NewGraphqlSubscriptionClient(host string, token string) (error, GraphqlSubs
 			},
 		}).OnError(onClientError)
 
-	subClient := GraphqlSubscriptionClient{
+	subClient := &GraphqlSubscriptionClient{
 		Client:    client,
 		errChan:   make(chan error),
 		readyChan: make(chan bool),
@@ -64,13 +64,13 @@ func NewGraphqlSubscriptionClient(host string, token string) (error, GraphqlSubs
 	return nil, subClient
 }
 
-func (c GraphqlSubscriptionClient) onClientConnected() {
+func (c *GraphqlSubscriptionClient) onClientConnected() {
 	zap.S().Infof("Graphql client connected")
 	c.connected = true
 	c.readyChan <- true
 }
 
-func (c GraphqlSubscriptionClient) onClientDisconnected() {
+func (c *GraphqlSubscriptionClient) onClientDisconnected() {
 	zap.S().Warnf("Graphql client disconnected")
 	c.connected = false
 	c.readyChan <- false
@@ -81,7 +81,7 @@ func onClientError(sc *graphql.SubscriptionClient, err error) error {
 	return err
 }
 
-func (c GraphqlSubscriptionClient) Subscribe(query interface{}, handler func(message *json.RawMessage, err error) error) error {
+func (c *GraphqlSubscriptionClient) Subscribe(query interface{}, handler func(message *json.RawMessage, err error) error) error {
 	id, err := c.Client.Subscribe(query, nil, handler)
 	if err != nil {
 		return err
@@ -90,7 +90,7 @@ func (c GraphqlSubscriptionClient) Subscribe(query interface{}, handler func(mes
 	return nil
 }
 
-func (c GraphqlSubscriptionClient) Unsubscribe() error {
+func (c *GraphqlSubscriptionClient) Unsubscribe() error {
 	err := c.Client.Unsubscribe(c.Id)
 	if err != nil {
 		return err
@@ -98,7 +98,7 @@ func (c GraphqlSubscriptionClient) Unsubscribe() error {
 	return nil
 }
 
-func (c GraphqlSubscriptionClient) Start() error {
+func (c *GraphqlSubscriptionClient) Start() error {
 	go func() {
 		err := c.Client.Run()
 		if err != nil {
@@ -118,10 +118,10 @@ func (c GraphqlSubscriptionClient) Start() error {
 	}
 }
 
-func (c GraphqlSubscriptionClient) Stop() error {
+func (c *GraphqlSubscriptionClient) Stop() error {
 	return c.Client.Close()
 }
 
-func (c GraphqlSubscriptionClient) GetState() bool {
+func (c *GraphqlSubscriptionClient) GetState() bool {
 	return c.connected
 }

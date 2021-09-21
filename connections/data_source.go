@@ -52,24 +52,28 @@ func WithRetryDelay(delay time.Duration) SourceOption {
 }
 
 func WithPostgresDB(dbConn *gorm.DB) SourceOption {
+	checkPointer(dbConn)
 	return func(w *DataSource) {
 		w.DatabasePostgres = dbConn
 	}
 }
 
 func WithMongoDB(dbConn *mongo.Client) SourceOption {
+	checkPointer(dbConn)
 	return func(w *DataSource) {
 		w.DatabaseMongo = dbConn
 	}
 }
 
 func WithRosettaClient(client *client.APIClient) SourceOption {
+	checkPointer(client)
 	return func(w *DataSource) {
 		w.RosettaClient = client
 	}
 }
 
 func WithNodeClient(node interface{}) SourceOption {
+	checkPointer(node)
 	return func(w *DataSource) {
 		w.NodeClient = node
 	}
@@ -82,5 +86,11 @@ func WithDataStore(cfg ds.DataStoreConfig) SourceOption {
 			panic(err)
 		}
 		w.DataStore = storeClient
+	}
+}
+
+func checkPointer(p interface{}) {
+	if p == nil {
+		panic("Pointer cannot be null!")
 	}
 }
