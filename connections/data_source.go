@@ -3,6 +3,7 @@ package connections
 import (
 	"context"
 	ds "github.com/Zondax/zindexer/connections/data_store"
+	"github.com/Zondax/zindexer/connections/database"
 	"github.com/coinbase/rosetta-sdk-go/client"
 	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/gorm"
@@ -15,11 +16,12 @@ const (
 
 type DataSource struct {
 	// data sources
-	DatabasePostgres *gorm.DB
-	DatabaseMongo    *mongo.Client
-	RosettaClient    *client.APIClient
-	NodeClient       interface{}
-	DataStore        ds.DataStoreClient
+	DatabasePostgres    *gorm.DB
+	DatabaseMongoClient *mongo.Client
+	DatabaseMongoCfg    database.DBConnectionParams
+	RosettaClient       *client.APIClient
+	NodeClient          interface{}
+	DataStore           ds.DataStoreClient
 	// common
 	Ctx        context.Context
 	RetryDelay time.Duration
@@ -58,10 +60,16 @@ func WithPostgresDB(dbConn *gorm.DB) SourceOption {
 	}
 }
 
-func WithMongoDB(dbConn *mongo.Client) SourceOption {
+func WithMongoDBClient(dbConn *mongo.Client) SourceOption {
 	checkPointer(dbConn)
 	return func(w *DataSource) {
-		w.DatabaseMongo = dbConn
+		w.DatabaseMongoClient = dbConn
+	}
+}
+
+func WithMongoDBConfig(cfg database.DBConnectionParams) SourceOption {
+	return func(w *DataSource) {
+		w.DatabaseMongoCfg = cfg
 	}
 }
 
