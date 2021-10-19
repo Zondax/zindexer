@@ -1,0 +1,40 @@
+name: Build jobs
+
+on:
+  push:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.16'
+      - name: Build
+        run: |
+          make build
+
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.16'
+      - run: make build
+      - name: ModTidy check
+        run: make check-modtidy
+      - name: Lint check
+        run: |
+          make install_lint
+          make lint

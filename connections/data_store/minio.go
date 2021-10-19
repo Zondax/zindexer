@@ -9,8 +9,6 @@ import (
 	"os"
 )
 
-const MinIOStorage = "minio"
-
 type MinioClient struct {
 	client *minio.Client
 }
@@ -75,4 +73,8 @@ func (c MinioClient) UploadFile(name string, dest string) error {
 		return err
 	}
 	return nil
+}
+
+func (c MinioClient) StorageType() string {
+	return MinIOStorage
 }
