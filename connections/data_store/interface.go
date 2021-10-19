@@ -4,6 +4,7 @@ type IDataStoreClient interface {
 	GetFile(name string, location string) (*[]byte, error)
 	UploadFile(name string, dest string) error
 	List(dir string, prefix string) *[]string
+	StorageType() string
 }
 
 type DataStoreClient struct {
@@ -15,4 +16,5 @@ type DataStoreConfig struct {
 	User     string
 	Password string
 	Service  string
+	DataPath string
 }
