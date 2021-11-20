@@ -26,7 +26,7 @@ func NewJobDispatcher() *JobDispatcher {
 		retryTimeout:   DefaultRetryTimeout,
 		jobPool:        NewJobPool(),
 		workerChan:     make(chan chan Work),
-		inputChan:      make(chan Work),
+		inputChan:      make(chan Work, 1),
 		endChan:        make(chan bool),
 		EmptyQueueChan: make(chan bool),
 	}
@@ -53,7 +53,9 @@ func (j *JobDispatcher) Start() {
 		work := j.jobPool.GetNewJob()
 		if work.JobId == -1 {
 			zap.S().Infof("*** No more jobs on JobPool, waiting.... ***")
-			j.EmptyQueueChan <- true
+			if len(j.inputChan) == 0 {
+				j.EmptyQueueChan <- true
+			}
 			time.Sleep(j.retryTimeout)
 			continue
 		}
