@@ -3,11 +3,14 @@ package graphql
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/Zondax/zindexer/connections/database"
 	"github.com/hasura/go-graphql-client"
 	"go.uber.org/zap"
-	"net/http"
-	"time"
 )
 
 const ConnectTimeout = 10 * time.Second
@@ -124,4 +127,68 @@ func (c *GraphqlSubscriptionClient) Stop() error {
 
 func (c *GraphqlSubscriptionClient) GetState() bool {
 	return c.connected
+}
+
+// Hasura Specific Helpers
+
+func HasuraApiRequest(host string, token string, body string) error {
+	payload := strings.NewReader(body)
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", host, payload)
+
+	if err != nil {
+		return err
+	}
+	req.Header.Add("x-hasura-admin-secret", token)
+	req.Header.Add("Content-Type", "application/json")
+
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	b, err := ioutil.ReadAll(res.Body)
+	zap.S().Debug(string(b))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func HasuraCreateView(host string, token string, viewName string, viewAs string) error {
+	host = strings.Replace(host, "graphql", "query", 1)
+	body := fmt.Sprintf(`
+	{
+		"type": "run_sql",
+		"args": {
+			"sql": "CREATE VIEW %s as %s"
+		}
+	}`, viewName, viewAs)
+
+	err := HasuraApiRequest(host, token, body)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func HasuraTrackTable(host string, token string, table string) error {
+	schemaAndTable := strings.SplitN(table, ".", 2)
+	host = strings.Replace(host, "graphql", "query", 1)
+	body := fmt.Sprintf(`
+	{
+		"type": "track_table",
+		"args": {
+			"schema": "%s",
+			"name": "%s"
+		}
+	}`, schemaAndTable[0], strings.ToLower(schemaAndTable[1]))
+
+	err := HasuraApiRequest(host, token, body)
+	if err != nil {
+		return err
+	}
+	return nil
+
 }
