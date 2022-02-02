@@ -1,6 +1,7 @@
 package tracker
 
 import (
+	"github.com/Zondax/zindexer/components/connections/database/postgres"
 	"sort"
 )
 
@@ -13,7 +14,7 @@ type Section struct {
 type Sections = []Section
 
 func (Section) TableName() string {
-	return "testing.tracking" // TODO
+	return postgres.GetTableName("tracking")
 }
 
 func buildSectionsFromSlice(heights *[]uint64) Sections {
