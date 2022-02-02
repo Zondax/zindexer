@@ -33,8 +33,16 @@ func (j *IndexJobPool) GetNewJob() Work {
 	return j.queue.Remove().(Work)
 }
 
-func (j *IndexJobPool) EnqueueJob(work Work) {
+func (j *IndexJobPool) EnqueueJob(job Work) {
 	j.mutex.Lock()
 	defer j.mutex.Unlock()
-	j.queue.Add(work)
+	j.queue.Add(job)
+}
+
+func (j *IndexJobPool) EnqueueJobList(jobs *[]Work) {
+	j.mutex.Lock()
+	defer j.mutex.Unlock()
+	for _, job := range *jobs {
+		j.queue.Add(job)
+	}
 }
