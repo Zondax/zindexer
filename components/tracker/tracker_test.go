@@ -2,11 +2,11 @@ package tracker
 
 import (
 	"fmt"
+	"github.com/Zondax/zindexer/components/connections/database"
+	"github.com/Zondax/zindexer/components/connections/database/postgres"
 	"reflect"
 	"testing"
 
-	"github.com/Zondax/zindexer/connections/database"
-	"github.com/Zondax/zindexer/connections/database/postgres"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"gorm.io/gorm"

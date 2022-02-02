@@ -18,7 +18,7 @@ type JobDispatcher struct {
 	constructorFn  *WorkerConstructor // constructor fn for workers
 }
 
-func NewJobDispatcher(cfg Config) *JobDispatcher {
+func NewJobDispatcher(cfg DispatcherConfig) *JobDispatcher {
 	d := JobDispatcher{
 		retryTimeout:   cfg.RetryTimeout,
 		jobPool:        NewJobPool(),

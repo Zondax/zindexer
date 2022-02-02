@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	"github.com/Zondax/zindexer/connections/database"
+	"github.com/Zondax/zindexer/components/connections/database"
 	"go.mongodb.org/mongo-driver/bson"
 	"os"
 	"testing"

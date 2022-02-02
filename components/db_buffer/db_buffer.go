@@ -2,7 +2,7 @@ package db_buffer
 
 import (
 	"fmt"
-	"github.com/Zondax/zindexer/connections/zmetrics"
+	"github.com/Zondax/zindexer/components/connections/zmetrics"
 	cmap "github.com/orcaman/concurrent-map"
 	"go.uber.org/zap"
 	"gorm.io/gorm"

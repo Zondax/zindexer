@@ -1,9 +1,9 @@
 package indexer
 
 import (
-	"github.com/Zondax/zindexer/db_buffer"
-	"github.com/Zondax/zindexer/tracker"
-	WorkQueue "github.com/Zondax/zindexer/workers/workQueue"
+	"github.com/Zondax/zindexer/components/db_buffer"
+	"github.com/Zondax/zindexer/components/tracker"
+	"github.com/Zondax/zindexer/components/workQueue"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"os"

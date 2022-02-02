@@ -2,7 +2,7 @@ package postgres
 
 import (
 	"fmt"
-	"github.com/Zondax/zindexer/connections/database"
+	"github.com/Zondax/zindexer/components/connections/database"
 	"github.com/spf13/viper"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

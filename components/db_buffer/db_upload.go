@@ -3,7 +3,7 @@ package db_buffer
 import (
 	"bytes"
 	"fmt"
-	"github.com/Zondax/zindexer/connections/database/postgres"
+	"github.com/Zondax/zindexer/components/connections/database/postgres"
 	"github.com/jszwec/csvutil"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"

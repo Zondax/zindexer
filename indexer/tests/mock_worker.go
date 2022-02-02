@@ -2,11 +2,11 @@ package tests
 
 import (
 	"fmt"
-	"github.com/Zondax/zindexer/db_buffer"
+	db_buffer2 "github.com/Zondax/zindexer/components/db_buffer"
+	"github.com/Zondax/zindexer/components/tracker"
+	"github.com/Zondax/zindexer/components/workQueue"
 	"github.com/Zondax/zindexer/indexer"
 	"github.com/Zondax/zindexer/indexer/tests/utils"
-	"github.com/Zondax/zindexer/tracker"
-	WorkQueue "github.com/Zondax/zindexer/workers/workQueue"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"strconv"
@@ -33,17 +33,17 @@ type MockWorker struct {
 	currentWork WorkQueue.Work
 
 	//
-	buffer *db_buffer.Buffer
+	buffer *db_buffer2.Buffer
 }
 
 func NewMockIndexer(dbConn *gorm.DB, id string) *MockIndexer {
 	config := indexer.Config{
 		ComponentsCfg: indexer.ComponentsCfg{
-			DBBufferCfg: db_buffer.Config{
+			DBBufferCfg: db_buffer2.Config{
 				SyncTimePeriod:     5 * time.Second,
 				SyncBlockThreshold: 10,
 			},
-			DispatcherCfg: WorkQueue.Config{
+			DispatcherCfg: WorkQueue.DispatcherConfig{
 				RetryTimeout: 10 * time.Second,
 			},
 		},
@@ -64,7 +64,7 @@ func (i *MockIndexer) MockGetMissingHeights() (*[]uint64, error) {
 	return heights, nil
 }
 
-func (i *MockIndexer) MockSyncToDB() db_buffer.SyncResult {
+func (i *MockIndexer) MockSyncToDB() db_buffer2.SyncResult {
 	fmt.Println("Syncing to DB")
 
 	data, err := i.BaseIndexer.DBBuffer.GetData("dummy")
@@ -73,7 +73,7 @@ func (i *MockIndexer) MockSyncToDB() db_buffer.SyncResult {
 	}
 
 	if len(data) == 0 {
-		return db_buffer.SyncResult{}
+		return db_buffer2.SyncResult{}
 	}
 
 	var dummyBlocks []DummyBlock
@@ -87,7 +87,7 @@ func (i *MockIndexer) MockSyncToDB() db_buffer.SyncResult {
 
 	i.BaseIndexer.DbConn.Create(dummyBlocks)
 
-	return db_buffer.SyncResult{
+	return db_buffer2.SyncResult{
 		SyncedHeights: &heights,
 	}
 }

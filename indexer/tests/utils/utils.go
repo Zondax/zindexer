@@ -3,9 +3,9 @@ package utils
 import (
 	"crypto/sha1"
 	"fmt"
-	"github.com/Zondax/zindexer/connections/database"
-	"github.com/Zondax/zindexer/connections/database/postgres"
-	"github.com/Zondax/zindexer/tracker"
+	"github.com/Zondax/zindexer/components/connections/database"
+	"github.com/Zondax/zindexer/components/connections/database/postgres"
+	"github.com/Zondax/zindexer/components/tracker"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"

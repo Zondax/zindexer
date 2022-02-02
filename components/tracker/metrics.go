@@ -2,7 +2,7 @@ package tracker
 
 import (
 	"fmt"
-	"github.com/Zondax/zindexer/connections/zmetrics"
+	"github.com/Zondax/zindexer/components/connections/zmetrics"
 	"go.uber.org/zap"
 	"regexp"
 	"strings"

@@ -2,6 +2,6 @@ package WorkQueue
 
 import "time"
 
-type Config struct {
+type DispatcherConfig struct {
 	RetryTimeout time.Duration
 }
