@@ -3,9 +3,9 @@ package db_buffer
 import (
 	"bytes"
 	"fmt"
+	"github.com/Zondax/zindexer/connections/database/postgres"
 	"github.com/jszwec/csvutil"
 	"github.com/spf13/viper"
-	"github.com/zondax/zindexer-filecoin/types"
 	"go.uber.org/zap"
 	"os"
 	"os/exec"
@@ -88,7 +88,7 @@ func uploadCSV(filePath string, destinationTable string) error {
 	)
 
 	workersCount := strconv.FormatInt(int64(runtime.NumCPU()), 10)
-	tableName := types.GetTableNameWithoutSchema(destinationTable)
+	tableName := postgres.GetTableNameWithoutSchema(destinationTable)
 	dbConnParams := fmt.Sprintf("'host=%s user=%s password=%s port=%s sslmode=disable'", dbHost, dbUser, dbPassword, dbPort)
 	insertParams := fmt.Sprintf("%s --db-name %s --schema %s --table %s --connection %s --file %s --workers %s --skip-header", cmdPath, dbName, dbSchema, tableName, dbConnParams, filePath, workersCount)
 	cmd := exec.Command("/bin/sh", "-c", insertParams)

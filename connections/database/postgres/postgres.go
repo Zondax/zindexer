@@ -3,8 +3,10 @@ package postgres
 import (
 	"fmt"
 	"github.com/Zondax/zindexer/connections/database"
+	"github.com/spf13/viper"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"strings"
 )
 
 type GormConnection struct {
@@ -13,6 +15,16 @@ type GormConnection struct {
 
 type DBConnectionConfig struct {
 	Gorm *gorm.Config
+}
+
+func GetTableName(table string) string {
+	dbSchema := viper.GetString("db_schema")
+	return fmt.Sprintf("%s.%s", dbSchema, table)
+}
+
+func GetTableNameWithoutSchema(fullName string) string {
+	split := strings.Split(fullName, ".")
+	return split[len(split)-1]
 }
 
 func NewPostgresConnection(params *database.DBConnectionParams, config DBConnectionConfig) (*GormConnection, error) {

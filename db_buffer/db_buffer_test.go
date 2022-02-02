@@ -1,13 +1,9 @@
 package db_buffer
 
 import (
-	"crypto/rand"
 	"fmt"
 	"github.com/Zondax/zindexer"
-	"github.com/filecoin-project/lotus/chain/types/mock"
 	"github.com/stretchr/testify/assert"
-	"github.com/zondax/zindexer-filecoin/types"
-	"math/big"
 	"os"
 	"testing"
 	"time"
@@ -18,23 +14,27 @@ const (
 	TestBlocksThreshold = 5
 )
 
+type ReportTransaction struct {
+	Height      int64  `json:"height" gorm:"index:idx_transactions_height"`
+	TxTimestamp int64  `json:"tx_timestamp"`
+	TxFrom      string `json:"tx_from" gorm:"index:idx_transactions_tx_from"`
+}
+
 func TestMain(m *testing.M) {
 	zindexer.InitGlobalLogger()
 	c := m.Run()
 	os.Exit(c)
 }
 
-func createMockTx(height int) *types.ReportTransaction {
-	n, _ := rand.Int(rand.Reader, big.NewInt(100))
-	return &types.ReportTransaction{
+func createMockTx(height int) *ReportTransaction {
+	return &ReportTransaction{
 		Height:      int64(height),
 		TxTimestamp: time.Now().Unix(),
-		TxFrom:      mock.Address(n.Uint64()).String(),
 	}
 }
 
 func Test_InsertAndGetTransactions_BlocksThreshold(t *testing.T) {
-	var retrievedTx []*types.ReportTransaction
+	var retrievedTx []*ReportTransaction
 	dbBuffer := NewDBBuffer(nil, Config{
 		SyncTimePeriod:     TestSyncPeriod,
 		SyncBlockThreshold: TestBlocksThreshold,
@@ -48,7 +48,7 @@ func Test_InsertAndGetTransactions_BlocksThreshold(t *testing.T) {
 			}
 			var syncedHeights []uint64
 			for _, transactions := range txs {
-				txs := *transactions.(*[]*types.ReportTransaction)
+				txs := *transactions.(*[]*ReportTransaction)
 				for _, tx := range txs {
 					syncedHeights = append(syncedHeights, uint64(tx.Height))
 				}
@@ -66,9 +66,9 @@ func Test_InsertAndGetTransactions_BlocksThreshold(t *testing.T) {
 	maxBlocks := TestBlocksThreshold * 200
 	maxTxsInBlock := 10
 
-	var allTxs []*types.ReportTransaction
+	var allTxs []*ReportTransaction
 	for h := 0; h < maxBlocks; h++ {
-		var txs []*types.ReportTransaction
+		var txs []*ReportTransaction
 		for t := 0; t < maxTxsInBlock; t++ {
 			txs = append(txs, createMockTx(h))
 		}
@@ -102,7 +102,7 @@ func Test_InsertAndGetTransactions_Ticker(t *testing.T) {
 	maxTxsInBlock := 10
 
 	for h := 0; h < maxBlocks; h++ {
-		var txs []*types.ReportTransaction
+		var txs []*ReportTransaction
 		for t := 0; t < maxTxsInBlock; t++ {
 			txs = append(txs, createMockTx(h))
 		}
