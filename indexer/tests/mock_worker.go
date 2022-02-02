@@ -14,8 +14,6 @@ import (
 	"time"
 )
 
-var MovingTip uint64 = 100
-
 type DummyBlock struct {
 	Height uint64
 	Hash   string
@@ -26,7 +24,9 @@ func (DummyBlock) TableName() string {
 }
 
 type MockIndexer struct {
-	BaseIndexer *indexer.Indexer
+	BaseIndexer   *indexer.Indexer
+	GenesisHeight uint64
+	TipHeight     uint64
 }
 
 type MockWorker struct {
@@ -34,7 +34,7 @@ type MockWorker struct {
 	buffer    *db_buffer2.Buffer
 }
 
-func NewMockIndexer(dbConn *gorm.DB, id string) *MockIndexer {
+func NewMockIndexer(dbConn *gorm.DB, id string, tip, genesis uint64) *MockIndexer {
 	config := indexer.Config{
 		ComponentsCfg: indexer.ComponentsCfg{
 			DBBufferCfg: db_buffer2.Config{
@@ -47,18 +47,21 @@ func NewMockIndexer(dbConn *gorm.DB, id string) *MockIndexer {
 		},
 	}
 
-	mockIndexer := MockIndexer{BaseIndexer: indexer.NewIndexer(dbConn, id, config)}
+	mockIndexer := MockIndexer{
+		BaseIndexer:   indexer.NewIndexer(dbConn, id, config),
+		TipHeight:     tip,
+		GenesisHeight: genesis,
+	}
 	return &mockIndexer
 }
 
 func (i *MockIndexer) MockGetMissingHeights() (*[]uint64, error) {
-	heights, err := tracker.GetMissingHeights(MovingTip, 0, tracker.NoReturnLimit,
+	heights, err := tracker.GetMissingHeights(i.TipHeight, i.GenesisHeight, tracker.NoReturnLimit,
 		i.BaseIndexer.Id, i.BaseIndexer.DbConn)
 	if err != nil {
 		return nil, err
 	}
 
-	MovingTip++
 	return heights, nil
 }
 

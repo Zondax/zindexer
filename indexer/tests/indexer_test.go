@@ -42,14 +42,14 @@ func Test_BasicIndexer(t *testing.T) {
 	}
 
 	// Create the indexer
-	zidx := NewMockIndexer(dbConn, "test")
+	zidx := NewMockIndexer(dbConn, "test", 1000, 0)
 
 	// Set the cb function that will be called when a buffer's sync event triggers
 	zidx.BaseIndexer.SetSyncCB(zidx.MockSyncToDB)
 
 	// Set up workers
 	zidx.BaseIndexer.SetWorkerConstructor(zidx.NewMockWorker)
-	zidx.BaseIndexer.BuildWorkers(10)
+	zidx.BaseIndexer.BuildWorkers(20)
 
 	// Set the function which retrieves missing heights
 	zidx.BaseIndexer.SetGetMissingHeightsFn(zidx.MockGetMissingHeights)
