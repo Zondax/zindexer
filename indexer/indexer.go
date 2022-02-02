@@ -66,10 +66,10 @@ func (i *Indexer) StartIndexing() error {
 	exitChan := make(chan os.Signal, 1)
 	signal.Notify(exitChan, os.Interrupt)
 
-	//Start db_buffer
+	// Start db_buffer
 	i.DBBuffer.Start()
 
-	//Start job dispatcher
+	// Start job dispatcher
 	i.jobDispatcher.Start()
 
 	// Main loop

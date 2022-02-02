@@ -2,6 +2,7 @@ package tests
 
 import (
 	"fmt"
+	"github.com/Zondax/zindexer/components/connections/database/postgres"
 	db_buffer2 "github.com/Zondax/zindexer/components/db_buffer"
 	"github.com/Zondax/zindexer/components/tracker"
 	"github.com/Zondax/zindexer/components/workQueue"
@@ -21,7 +22,7 @@ type DummyBlock struct {
 }
 
 func (DummyBlock) TableName() string {
-	return "testing.transactions" //TODO
+	return postgres.GetTableName("transactions")
 }
 
 type MockIndexer struct {
@@ -29,11 +30,8 @@ type MockIndexer struct {
 }
 
 type MockWorker struct {
-	workQueue   WorkQueue.WorkQueue
-	currentWork WorkQueue.Work
-
-	//
-	buffer *db_buffer2.Buffer
+	workQueue WorkQueue.WorkQueue
+	buffer    *db_buffer2.Buffer
 }
 
 func NewMockIndexer(dbConn *gorm.DB, id string) *MockIndexer {
