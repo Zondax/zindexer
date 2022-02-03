@@ -36,6 +36,7 @@ type MockWorker struct {
 
 func NewMockIndexer(dbConn *gorm.DB, id string, tip, genesis uint64) *MockIndexer {
 	config := indexer.Config{
+		EnableBuffer: true,
 		ComponentsCfg: indexer.ComponentsCfg{
 			DBBufferCfg: db_buffer.Config{
 				SyncTimePeriod:     5 * time.Second,

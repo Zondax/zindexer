@@ -18,12 +18,17 @@ type Indexer struct {
 	DBBuffer         *db_buffer.Buffer
 	jobDispatcher    *WorkQueue.JobDispatcher
 	missingHeightsCB MissingHeightsFn
+	config           Config
 
 	stopChan chan bool
 }
 
 func NewIndexer(dbConn *gorm.DB, id string, cfg Config) *Indexer {
-	dbBuffer := db_buffer.NewDBBuffer(dbConn, cfg.DBBufferCfg)
+	var dbBuffer *db_buffer.Buffer
+	if cfg.EnableBuffer {
+		dbBuffer = db_buffer.NewDBBuffer(dbConn, cfg.DBBufferCfg)
+	}
+
 	dispatcher := WorkQueue.NewJobDispatcher(cfg.DispatcherCfg)
 
 	return &Indexer{
@@ -31,6 +36,7 @@ func NewIndexer(dbConn *gorm.DB, id string, cfg Config) *Indexer {
 		DbConn:        dbConn,
 		DBBuffer:      dbBuffer,
 		jobDispatcher: dispatcher,
+		config:        cfg,
 		stopChan:      make(chan bool),
 	}
 }
@@ -67,7 +73,9 @@ func (i *Indexer) StartIndexing() {
 	signal.Notify(exitChan, os.Interrupt)
 
 	// Start db_buffer
-	i.DBBuffer.Start()
+	if i.DBBuffer != nil {
+		i.DBBuffer.Start()
+	}
 
 	// Start job dispatcher
 	i.jobDispatcher.Start()
