@@ -1,7 +1,8 @@
 package utils
 
 import (
-	"crypto/sha1"
+	"crypto/rand"
+	"crypto/sha256"
 	"fmt"
 	"github.com/Zondax/zindexer/components/connections/database"
 	"github.com/Zondax/zindexer/components/connections/database/postgres"
@@ -9,8 +10,7 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"math/rand"
-	"time"
+	"math/big"
 )
 
 func InitdbConn() *gorm.DB {
@@ -54,14 +54,7 @@ func InitdbConn() *gorm.DB {
 	return dbConn
 }
 
-func SetGenesisAndTipInTracker(genesis, tip uint64, indexerId string, dbConn *gorm.DB) {
-	err := tracker.UpdateTrackedHeights(&[]uint64{genesis, tip}, indexerId, dbConn)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func NewSHA1Hash(n ...int) string {
+func NewSHA256Hash(n ...int) string {
 	noRandomCharacters := 32
 
 	if len(n) > 0 {
@@ -70,7 +63,7 @@ func NewSHA1Hash(n ...int) string {
 
 	randString := RandomString(noRandomCharacters)
 
-	hash := sha1.New()
+	hash := sha256.New()
 	hash.Write([]byte(randString))
 	bs := hash.Sum(nil)
 
@@ -81,13 +74,14 @@ var characterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXY
 
 func RandomString(n int) string {
 	b := make([]rune, n)
+	r, _ := rand.Int(rand.Reader, big.NewInt(int64(len(characterRunes))))
 	for i := range b {
-		b[i] = characterRunes[rand.Intn(len(characterRunes))]
+		b[i] = characterRunes[r.Int64()]
 	}
 	return string(b)
 }
 
-func RandomNumberInRange(max, min int) int {
-	rand.Seed(time.Now().UnixNano())
-	return rand.Intn(max-min+1) + min
+func RandomInt64(max int64) int64 {
+	n, _ := rand.Int(rand.Reader, big.NewInt(max))
+	return n.Int64()
 }

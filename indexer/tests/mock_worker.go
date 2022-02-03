@@ -62,7 +62,7 @@ func (i *MockIndexer) MockGetMissingHeights() (*[]uint64, error) {
 		return nil, err
 	}
 
-	i.TipHeight += uint64(utils.RandomNumberInRange(10, 1))
+	i.TipHeight += uint64(utils.RandomInt64(10))
 
 	return heights, nil
 }
@@ -123,7 +123,7 @@ func (m *MockWorker) DoWork(w WorkQueue.Work) {
 	fmt.Println("Worker received work id", w.JobId)
 	data := DummyBlock{
 		Height: uint64(w.JobId),
-		Hash:   utils.NewSHA1Hash(),
+		Hash:   utils.NewSHA256Hash(),
 	}
 
 	err := m.buffer.InsertData("dummy", w.JobId, data, true)
