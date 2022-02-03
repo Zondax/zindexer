@@ -81,9 +81,11 @@ func (i *Indexer) StartIndexing() error {
 			i.onDBSyncComplete(r)
 		case <-exitChan:
 			zap.S().Infof("*** Indexer '%s' exited by system abort ***", i.Id)
+			i.onStop()
 			return nil
 		case <-i.stopChan:
 			zap.S().Infof("*** Indexer '%s' exited by stop signal ***", i.Id)
+			i.onStop()
 			return nil
 		}
 	}
@@ -136,4 +138,8 @@ func (i *Indexer) onJobQueueEmpty() {
 	if err != nil {
 		zap.S().Errorf(err.Error())
 	}
+}
+
+func (i *Indexer) onStop() {
+
 }
