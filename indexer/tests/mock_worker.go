@@ -3,7 +3,7 @@ package tests
 import (
 	"fmt"
 	"github.com/Zondax/zindexer/components/connections/database/postgres"
-	db_buffer2 "github.com/Zondax/zindexer/components/db_buffer"
+	"github.com/Zondax/zindexer/components/db_buffer"
 	"github.com/Zondax/zindexer/components/tracker"
 	"github.com/Zondax/zindexer/components/workQueue"
 	"github.com/Zondax/zindexer/indexer"
@@ -15,7 +15,7 @@ import (
 )
 
 type DummyBlock struct {
-	Height uint64
+	Height uint64 `gorm:"unique"`
 	Hash   string
 }
 
@@ -31,13 +31,13 @@ type MockIndexer struct {
 
 type MockWorker struct {
 	workQueue WorkQueue.WorkQueue
-	buffer    *db_buffer2.Buffer
+	buffer    *db_buffer.Buffer
 }
 
 func NewMockIndexer(dbConn *gorm.DB, id string, tip, genesis uint64) *MockIndexer {
 	config := indexer.Config{
 		ComponentsCfg: indexer.ComponentsCfg{
-			DBBufferCfg: db_buffer2.Config{
+			DBBufferCfg: db_buffer.Config{
 				SyncTimePeriod:     5 * time.Second,
 				SyncBlockThreshold: 10,
 			},
@@ -62,10 +62,12 @@ func (i *MockIndexer) MockGetMissingHeights() (*[]uint64, error) {
 		return nil, err
 	}
 
+	i.TipHeight += uint64(utils.RandomNumberInRange(10, 1))
+
 	return heights, nil
 }
 
-func (i *MockIndexer) MockSyncToDB() db_buffer2.SyncResult {
+func (i *MockIndexer) MockSyncToDB() db_buffer.SyncResult {
 	fmt.Println("Syncing to DB")
 
 	data, err := i.BaseIndexer.DBBuffer.GetData("dummy")
@@ -74,7 +76,7 @@ func (i *MockIndexer) MockSyncToDB() db_buffer2.SyncResult {
 	}
 
 	if len(data) == 0 {
-		return db_buffer2.SyncResult{}
+		return db_buffer.SyncResult{}
 	}
 
 	var dummyBlocks []DummyBlock
@@ -86,9 +88,13 @@ func (i *MockIndexer) MockSyncToDB() db_buffer2.SyncResult {
 		heights = append(heights, uint64(height))
 	}
 
-	i.BaseIndexer.DbConn.Create(dummyBlocks)
+	// Will panic if tries to insert a duplicate
+	tx := i.BaseIndexer.DbConn.Create(dummyBlocks)
+	if tx.Error != nil {
+		panic(tx.Error)
+	}
 
-	return db_buffer2.SyncResult{
+	return db_buffer.SyncResult{
 		SyncedHeights: &heights,
 	}
 }

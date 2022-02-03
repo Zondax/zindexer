@@ -9,7 +9,10 @@ import (
 	"gorm.io/gorm"
 	"os"
 	"testing"
+	"time"
 )
+
+const testId = "test"
 
 func TestMain(m *testing.M) {
 	viper.SetDefault("db_schema", "testing")
@@ -33,6 +36,10 @@ func setupTestingDB(db *gorm.DB) {
 	}
 }
 
+func startTestTimeout() {
+
+}
+
 func Test_BasicIndexer(t *testing.T) {
 	dbConn := utils.InitdbConn()
 	setupTestingDB(dbConn)
@@ -42,7 +49,7 @@ func Test_BasicIndexer(t *testing.T) {
 	}
 
 	// Create the indexer
-	zidx := NewMockIndexer(dbConn, "test", 1000, 0)
+	zidx := NewMockIndexer(dbConn, testId, 1000, 0)
 
 	// Set the cb function that will be called when a buffer's sync event triggers
 	zidx.BaseIndexer.SetSyncCB(zidx.MockSyncToDB)
@@ -54,9 +61,25 @@ func Test_BasicIndexer(t *testing.T) {
 	// Set the function which retrieves missing heights
 	zidx.BaseIndexer.SetGetMissingHeightsFn(zidx.MockGetMissingHeights)
 
-	// Start indexing (blocking)
-	err = zidx.BaseIndexer.StartIndexing()
-	if err != nil {
-		panic(err)
+	go func() {
+		err := zidx.BaseIndexer.StartIndexing()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	for true {
+		time.Sleep(30 * time.Second)
+		heights, err := tracker.GetTrackedHeights(testId, dbConn)
+		if err != nil {
+			return
+		}
+
+		if len(*heights) > 1500 {
+			fmt.Println("Test reached finish line without duplicates!. Rows inserted:", len(*heights))
+			zidx.BaseIndexer.StopIndexing()
+			break
+		}
 	}
+
 }
