@@ -53,6 +53,10 @@ func (j *JobDispatcher) BuildWorkers(count int) {
 	}
 }
 
+func (j *JobDispatcher) Stop() {
+	j.endChan <- true
+}
+
 func (j *JobDispatcher) Start() {
 	go func() {
 		j.dispatch()

@@ -81,18 +81,10 @@ func (i *Indexer) StartIndexing() error {
 			i.onDBSyncComplete(r)
 		case <-exitChan:
 			zap.S().Infof("*** Indexer '%s' exited by system abort ***", i.Id)
-			i.onStop()
-			return nil
-		case <-i.stopChan:
-			zap.S().Infof("*** Indexer '%s' exited by stop signal ***", i.Id)
-			i.onStop()
+			i.onExit()
 			return nil
 		}
 	}
-}
-
-func (i *Indexer) StopIndexing() {
-	i.stopChan <- true
 }
 
 func (i *Indexer) addPendingHeights(p *[]uint64) error {
@@ -140,6 +132,10 @@ func (i *Indexer) onJobQueueEmpty() {
 	}
 }
 
-func (i *Indexer) onStop() {
+func (i *Indexer) StopIndexing() {
+	i.onExit()
+}
 
+func (i *Indexer) onExit() {
+	i.jobDispatcher.Stop()
 }
