@@ -45,7 +45,7 @@ func Test_BasicIndexer(t *testing.T) {
 	}
 
 	// Create the indexer
-	zidx := NewMockIndexer(dbConn, testId, 1000, 0)
+	zidx := NewMockIndexer(dbConn, testId, 100, 0)
 
 	// Set the cb function that will be called when a buffer's sync event triggers
 	zidx.BaseIndexer.SetSyncCB(zidx.MockSyncToDB)
@@ -71,7 +71,7 @@ func Test_BasicIndexer(t *testing.T) {
 			return
 		}
 
-		if len(*heights) > 1500 {
+		if len(*heights) > 200 {
 			fmt.Println("Test reached finish line without duplicates!. Rows inserted:", len(*heights))
 			zidx.BaseIndexer.StopIndexing()
 			break

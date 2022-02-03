@@ -24,7 +24,10 @@ test: build
 	go test -race ./...
 
 test-database: build
-	go test ./connections/database/... -v
+	go test ./components/connections/database/... -v
+
+test-integration: build
+	go test -v ./indexer/tests/...
 
 # Docker
 
