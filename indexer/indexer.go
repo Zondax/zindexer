@@ -18,17 +18,15 @@ type Indexer struct {
 	DBBuffer         *db_buffer.Buffer
 	jobDispatcher    *WorkQueue.JobDispatcher
 	missingHeightsCB MissingHeightsFn
-	config           Config
+	Config           Config
 
 	stopChan chan bool
 }
 
 func NewIndexer(dbConn *gorm.DB, id string, cfg Config) *Indexer {
-	var dbBuffer *db_buffer.Buffer
-	if cfg.EnableBuffer {
-		dbBuffer = db_buffer.NewDBBuffer(dbConn, cfg.DBBufferCfg)
-	}
+	checkConfig(&cfg)
 
+	dbBuffer := db_buffer.NewDBBuffer(dbConn, cfg.DBBufferCfg)
 	dispatcher := WorkQueue.NewJobDispatcher(cfg.DispatcherCfg)
 
 	return &Indexer{
@@ -36,8 +34,22 @@ func NewIndexer(dbConn *gorm.DB, id string, cfg Config) *Indexer {
 		DbConn:        dbConn,
 		DBBuffer:      dbBuffer,
 		jobDispatcher: dispatcher,
-		config:        cfg,
+		Config:        cfg,
 		stopChan:      make(chan bool),
+	}
+}
+
+func checkConfig(cfg *Config) {
+	// buffer
+	if cfg.DBBufferCfg.SyncTimePeriod <= 0 {
+		zap.S().Debugf("Setting default value for DbBuffer SyncTimePeriod: %s", db_buffer.DefaultSyncPeriod.String())
+		cfg.DBBufferCfg.SyncTimePeriod = db_buffer.DefaultSyncPeriod
+	}
+
+	// dispatcher
+	if cfg.DispatcherCfg.RetryTimeout <= 0 {
+		zap.S().Debugf("Setting default value for Dispatcher's DefaultRetryTimeout: %s", WorkQueue.DefaultRetryTimeout.String())
+		cfg.DispatcherCfg.RetryTimeout = WorkQueue.DefaultRetryTimeout
 	}
 }
 
@@ -73,7 +85,7 @@ func (i *Indexer) StartIndexing() {
 	signal.Notify(exitChan, os.Interrupt)
 
 	// Start db_buffer
-	if i.DBBuffer != nil {
+	if i.Config.EnableBuffer {
 		i.DBBuffer.Start()
 	}
 

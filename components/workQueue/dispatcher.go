@@ -6,8 +6,6 @@ import (
 	"time"
 )
 
-const DefaultRetryTimeout = 60 * time.Second
-
 type JobDispatcher struct {
 	retryTimeout   time.Duration
 	jobPool        *IndexJobPool
