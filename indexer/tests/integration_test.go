@@ -36,10 +36,6 @@ func setupTestingDB(db *gorm.DB) {
 	}
 }
 
-func startTestTimeout() {
-
-}
-
 func Test_BasicIndexer(t *testing.T) {
 	dbConn := utils.InitdbConn()
 	setupTestingDB(dbConn)
@@ -68,7 +64,7 @@ func Test_BasicIndexer(t *testing.T) {
 		}
 	}()
 
-	for true {
+	for {
 		time.Sleep(30 * time.Second)
 		heights, err := tracker.GetTrackedHeights(testId, dbConn)
 		if err != nil {
