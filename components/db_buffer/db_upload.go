@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func InsertTxsToDB(transactions interface{}, tableName string) error {
+func ParallelCopyTxsToDB(transactions interface{}, tableName string) error {
 	if transactions == nil {
 		return nil
 	}
