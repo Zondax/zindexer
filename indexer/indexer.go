@@ -55,7 +55,7 @@ func (i *Indexer) SetGetMissingHeightsFn(fn MissingHeightsFn) {
 	i.missingHeightsCB = fn
 }
 
-func (i *Indexer) StartIndexing() error {
+func (i *Indexer) StartIndexing() {
 	// Clear all in-progress jobs of previous run
 	err := tracker.ClearInProgress(i.Id, i.DbConn)
 	if err != nil {
@@ -82,7 +82,7 @@ func (i *Indexer) StartIndexing() error {
 		case <-exitChan:
 			zap.S().Infof("*** Indexer '%s' exited by system abort ***", i.Id)
 			i.onExit()
-			return nil
+			return
 		}
 	}
 }

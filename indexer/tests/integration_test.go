@@ -57,12 +57,7 @@ func Test_BasicIndexer(t *testing.T) {
 	// Set the function which retrieves missing heights
 	zidx.BaseIndexer.SetGetMissingHeightsFn(zidx.MockGetMissingHeights)
 
-	go func() {
-		err := zidx.BaseIndexer.StartIndexing()
-		if err != nil {
-			panic(err)
-		}
-	}()
+	go zidx.BaseIndexer.StartIndexing()
 
 	for {
 		time.Sleep(30 * time.Second)
