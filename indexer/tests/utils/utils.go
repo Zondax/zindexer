@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"math/rand"
+	"time"
 )
 
 func InitdbConn() *gorm.DB {
@@ -84,4 +85,9 @@ func RandomString(n int) string {
 		b[i] = characterRunes[rand.Intn(len(characterRunes))]
 	}
 	return string(b)
+}
+
+func RandomNumberInRange(max, min int) int {
+	rand.Seed(time.Now().UnixNano())
+	return rand.Intn(max-min+1) + min
 }
