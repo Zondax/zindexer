@@ -30,6 +30,8 @@ test-integration: build
 	go test -v ./indexer/tests/...
 
 # Docker
+test-database-up:
+	docker-compose -f ./indexer/tests/docker-compose.yml up -d
 
 test-database-services:
 	docker-compose -f tests_docker/test_database.yml up --abort-on-container-exit
