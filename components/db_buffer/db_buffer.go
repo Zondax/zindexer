@@ -104,7 +104,9 @@ func (b *Buffer) InsertData(key string, height int64, data interface{}, notify b
 }
 
 func (b *Buffer) ClearBuffer(dataType string) {
-	b.buffer[dataType].Clear()
+	if m, ok := b.buffer[dataType]; ok {
+		m.Clear()
+	}
 }
 
 func (b *Buffer) clearAllBuffers() {
