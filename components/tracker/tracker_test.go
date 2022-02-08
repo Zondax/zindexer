@@ -32,7 +32,7 @@ func init() {
 		User:     "postgres",
 		Password: "postgrespassword",
 		Name:     "postgres",
-		Host:     "db",
+		Host:     "localhost",
 		Port:     "5432",
 	}
 
