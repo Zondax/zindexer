@@ -12,7 +12,7 @@ import (
 const (
 	TestSyncPeriod      = 5 * time.Second
 	TestBlocksThreshold = 5
-	TestTimeout         = TestSyncPeriod * 2
+	TestTimeout         = TestSyncPeriod * 10
 )
 
 var (
