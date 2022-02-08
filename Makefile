@@ -29,6 +29,9 @@ test-database: build
 test-integration: build
 	go test -v ./indexer/tests/...
 
+test-components: build
+	 go test -v ./components/...
+
 # Docker
 test-database-up:
 	docker-compose -f ./indexer/tests/docker-compose.yml up -d
