@@ -9,7 +9,7 @@ gitclean:
 	git submodule foreach --recursive git clean -xfd
 
 install_lint:
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.35.2
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.41.1
 
 check-modtidy:
 	go mod tidy
@@ -24,9 +24,17 @@ test: build
 	go test -race ./...
 
 test-database: build
-	go test ./connections/database/... -v
+	go test ./components/connections/database/... -v
+
+test-integration: build
+	go test -v ./indexer/tests/...
+
+test-components: build
+	 go test -v ./components/...
 
 # Docker
+test-database-up:
+	docker-compose -f ./indexer/tests/docker-compose.yml up -d
 
 test-database-services:
 	docker-compose -f tests_docker/test_database.yml up --abort-on-container-exit

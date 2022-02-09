@@ -3,7 +3,7 @@ package mongodb
 import (
 	"context"
 	"fmt"
-	"github.com/Zondax/zindexer/connections/database"
+	"github.com/Zondax/zindexer/components/connections/database"
 	"go.uber.org/zap"
 	"time"
 

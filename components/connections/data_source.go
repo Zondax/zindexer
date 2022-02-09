@@ -2,8 +2,8 @@ package connections
 
 import (
 	"context"
-	ds "github.com/Zondax/zindexer/connections/data_store"
-	"github.com/Zondax/zindexer/connections/database"
+	"github.com/Zondax/zindexer/components/connections/data_store"
+	"github.com/Zondax/zindexer/components/connections/database"
 	"github.com/coinbase/rosetta-sdk-go/client"
 	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/gorm"
@@ -21,7 +21,7 @@ type DataSource struct {
 	DatabaseMongoCfg    database.DBConnectionParams
 	RosettaClient       *client.APIClient
 	NodeClient          interface{}
-	DataStore           ds.DataStoreClient
+	DataStore           data_store.DataStoreClient
 	// common
 	Ctx        context.Context
 	RetryDelay time.Duration
@@ -87,9 +87,9 @@ func WithNodeClient(node interface{}) SourceOption {
 	}
 }
 
-func WithDataStore(cfg ds.DataStoreConfig) SourceOption {
+func WithDataStore(cfg data_store.DataStoreConfig) SourceOption {
 	return func(w *DataSource) {
-		storeClient, err := ds.NewDataStoreClient(cfg)
+		storeClient, err := data_store.NewDataStoreClient(cfg)
 		if err != nil {
 			panic(err)
 		}

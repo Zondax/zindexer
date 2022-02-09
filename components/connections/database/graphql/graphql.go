@@ -3,12 +3,12 @@ package graphql
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Zondax/zindexer/components/connections/database"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/Zondax/zindexer/connections/database"
 	"github.com/hasura/go-graphql-client"
 	"go.uber.org/zap"
 )
