@@ -127,6 +127,9 @@ func (i *Indexer) addPendingHeights(p *[]uint64) error {
 func (i *Indexer) onDBSyncComplete(r db_buffer.SyncResult) {
 	if r.Error != nil {
 		zap.S().Errorf(r.Error.Error())
+		// Remove WIP heights
+		_ = tracker.UpdateInProgressHeight(false, r.SyncedHeights, i.Id, i.DbConn)
+		return
 	}
 
 	if r.SyncedHeights == nil {
