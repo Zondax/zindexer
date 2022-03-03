@@ -142,16 +142,16 @@ func (b *Buffer) callSync() {
 	defer b.syncMutex.Unlock()
 	defer b.syncTicker.Reset(b.config.SyncTimePeriod)
 
-	totalTime := time.Now()
+	syncStart := time.Now()
 	syncResult := b.syncCb()
 
 	b.clearAllBuffers()
 
 	if syncResult.Error == nil && syncResult.SyncedHeights != nil {
-		timeTotal := time.Since(totalTime).Seconds()
+		timeTotal := time.Since(syncStart).Seconds()
 		if timeTotal > 0 {
 			zap.S().Debugf("[Buffer] Total DB insertion time took %v seconds", timeTotal)
-			b.metrics.totalSyncTimeHist.Observe(time.Since(totalTime).Seconds())
+			b.metrics.totalSyncTimeHist.Observe(timeTotal)
 		}
 	}
 
