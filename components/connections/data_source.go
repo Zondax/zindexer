@@ -21,6 +21,7 @@ type DataSource struct {
 	DatabaseMongoCfg    database.DBConnectionParams
 	RosettaClient       *client.APIClient
 	NodeClient          interface{}
+	NodeWsClient        interface{}
 	DataStore           data_store.DataStoreClient
 	// common
 	Ctx        context.Context
@@ -84,6 +85,13 @@ func WithNodeClient(node interface{}) SourceOption {
 	checkPointer(node)
 	return func(w *DataSource) {
 		w.NodeClient = node
+	}
+}
+
+func WithNodeWSClient(node interface{}) SourceOption {
+	checkPointer(node)
+	return func(w *DataSource) {
+		w.NodeWsClient = node
 	}
 }
 
