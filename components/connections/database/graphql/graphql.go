@@ -80,7 +80,7 @@ func (c *GraphqlSubscriptionClient) onClientDisconnected() {
 }
 
 func onClientError(sc *graphql.SubscriptionClient, err error) error {
-	zap.S().Fatalf("Connection error on subscription client: %s", err.Error())
+	zap.S().Errorf("Connection error on subscription client: %s", err.Error())
 	return err
 }
 
