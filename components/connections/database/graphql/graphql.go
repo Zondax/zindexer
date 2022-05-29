@@ -69,6 +69,16 @@ func NewGraphqlSubscriptionClient(host string, token string) (error, *GraphqlSub
 
 func (c *GraphqlSubscriptionClient) onClientConnected() {
 	zap.S().Infof("Graphql client connected")
+	if c.connected {
+		// Client already connected, reset the client just in case
+		zap.S().Warnf("Client already connected, resetting...")
+		err := c.Client.Reset()
+		if err != nil {
+			zap.S().Warnf("Could not reset Graphql client")
+		}
+		return
+	}
+
 	c.connected = true
 	c.readyChan <- true
 }
