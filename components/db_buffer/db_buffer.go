@@ -68,6 +68,9 @@ func (b *Buffer) Start() {
 
 // Stop stops listening for syncing triggering events
 func (b *Buffer) Stop() {
+	b.syncMutex.Lock()
+	defer b.syncMutex.Unlock()
+
 	close(b.newDataChan)
 	b.syncTicker.Stop()
 	b.exitChan <- true

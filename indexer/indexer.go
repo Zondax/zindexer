@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 	"os"
 	"os/signal"
+	"syscall"
 )
 
 type MissingHeightsFn func() (*[]uint64, error)
@@ -81,8 +82,13 @@ func (i *Indexer) StartIndexing() {
 		panic(err)
 	}
 
-	exitChan := make(chan os.Signal, 1)
-	signal.Notify(exitChan, os.Interrupt)
+	go func() {
+		exitChan := make(chan os.Signal, 1)
+		signal.Notify(exitChan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+
+		<-exitChan
+		i.onExit()
+	}()
 
 	// Start db_buffer
 	if i.Config.EnableBuffer {
@@ -99,10 +105,6 @@ func (i *Indexer) StartIndexing() {
 			i.onJobQueueEmpty()
 		case r := <-i.DBBuffer.SyncComplete:
 			i.onDBSyncComplete(r)
-		case <-exitChan:
-			zap.S().Infof("*** Indexer '%s' exited by system abort ***", i.Id)
-			i.onExit()
-			return
 		}
 	}
 }
@@ -162,4 +164,9 @@ func (i *Indexer) StopIndexing() {
 
 func (i *Indexer) onExit() {
 	i.jobDispatcher.Stop()
+	i.DBBuffer.Stop()
+	close(i.DBBuffer.SyncComplete)
+	close(i.jobDispatcher.EmptyQueueChan)
+	zap.S().Infof("graceful shutdown done!")
+	os.Exit(0)
 }
