@@ -6,6 +6,7 @@ require (
 	github.com/ThreeDotsLabs/watermill v1.1.1
 	github.com/coinbase/rosetta-sdk-go v0.6.10
 	github.com/eapache/queue v1.1.0
+	github.com/go-chi/chi v4.0.2+incompatible
 	github.com/gorilla/mux v1.8.0
 	github.com/hasura/go-graphql-client v0.7.0
 	github.com/jszwec/csvutil v1.6.0

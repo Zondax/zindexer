@@ -72,5 +72,42 @@ func Test_BasicIndexer(t *testing.T) {
 			break
 		}
 	}
+}
 
+func Test_BasicIndexerWithExit(t *testing.T) {
+	dbConn := utils.InitdbConn()
+	setupTestingDB(dbConn)
+	err := dbConn.AutoMigrate(DummyBlock{})
+	if err != nil {
+		panic(err)
+	}
+
+	// Create the indexer
+	zidx := NewMockIndexer(dbConn, testId, 100, 0)
+
+	// Set the cb function that will be called when a buffer's sync event triggers
+	zidx.BaseIndexer.SetSyncCB(zidx.MockSyncToDBWithExit)
+
+	// Set up workers
+	zidx.BaseIndexer.SetWorkerConstructor(zidx.NewMockWorker)
+	zidx.BaseIndexer.BuildWorkers(20)
+
+	// Set the function which retrieves missing heights
+	zidx.BaseIndexer.SetGetMissingHeightsFn(zidx.MockGetMissingHeights)
+
+	go func() {
+		for {
+			time.Sleep(30 * time.Second)
+			heights, err := tracker.GetTrackedHeights(testId, dbConn)
+			if err != nil {
+				return
+			}
+
+			if len(*heights) > 200 {
+				t.Error("indexer did not stop properly!")
+			}
+		}
+	}()
+
+	zidx.BaseIndexer.StartIndexing()
 }

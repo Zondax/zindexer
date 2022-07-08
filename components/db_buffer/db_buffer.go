@@ -68,12 +68,14 @@ func (b *Buffer) Start() {
 
 // Stop stops listening for syncing triggering events
 func (b *Buffer) Stop() {
+	b.syncTicker.Stop()
+	// closes the loop in func checkIsTimeToSync
+	b.exitChan <- true
+
+	// wait if a syncing event is in progress,
+	// syncMutex gets released in func callSync
 	b.syncMutex.Lock()
 	defer b.syncMutex.Unlock()
-
-	close(b.newDataChan)
-	b.syncTicker.Stop()
-	b.exitChan <- true
 }
 
 // SetSyncFunc sets the syncing callback function
@@ -158,7 +160,10 @@ func (b *Buffer) callSync() {
 		}
 	}
 
-	b.SyncComplete <- syncResult
+	select {
+	case b.SyncComplete <- syncResult:
+	default:
+	}
 }
 
 func (b *Buffer) checkIsTimeToSync() {

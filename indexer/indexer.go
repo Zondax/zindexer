@@ -21,7 +21,8 @@ type Indexer struct {
 	missingHeightsCB MissingHeightsFn
 	Config           Config
 
-	stopChan chan bool
+	stopChan     chan bool
+	statusServer *StatusServer
 }
 
 func NewIndexer(dbConn *gorm.DB, id string, cfg Config) *Indexer {
@@ -82,13 +83,8 @@ func (i *Indexer) StartIndexing() {
 		panic(err)
 	}
 
-	go func() {
-		exitChan := make(chan os.Signal, 1)
-		signal.Notify(exitChan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
-
-		<-exitChan
-		i.onExit()
-	}()
+	exitChan := make(chan os.Signal, 1)
+	signal.Notify(exitChan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 
 	// Start db_buffer
 	if i.Config.EnableBuffer {
@@ -98,6 +94,10 @@ func (i *Indexer) StartIndexing() {
 	// Start job dispatcher
 	i.jobDispatcher.Start()
 
+	// Status server
+	i.statusServer = NewStatusServer(i)
+	i.statusServer.Start()
+
 	// Main loop
 	for {
 		select {
@@ -105,6 +105,14 @@ func (i *Indexer) StartIndexing() {
 			i.onJobQueueEmpty()
 		case r := <-i.DBBuffer.SyncComplete:
 			i.onDBSyncComplete(r)
+		case <-exitChan:
+			zap.S().Debugf("Exit signal catched!")
+			i.onStop()
+			return
+		case <-i.stopChan:
+			zap.S().Debugf("Stop signal received!")
+			i.onStop()
+			return
 		}
 	}
 }
@@ -159,14 +167,14 @@ func (i *Indexer) onJobQueueEmpty() {
 }
 
 func (i *Indexer) StopIndexing() {
-	i.onExit()
+	zap.S().Info("[Indexer] - StopIndexing")
+	i.stopChan <- true
 }
 
-func (i *Indexer) onExit() {
+func (i *Indexer) onStop() {
+	zap.S().Info("[Indexer]- graceful shutdown requested!")
 	i.jobDispatcher.Stop()
 	i.DBBuffer.Stop()
-	close(i.DBBuffer.SyncComplete)
-	close(i.jobDispatcher.EmptyQueueChan)
-	zap.S().Infof("graceful shutdown done!")
-	os.Exit(0)
+	i.statusServer.Stop()
+	zap.S().Info("[Indexer]- graceful shutdown done!")
 }
