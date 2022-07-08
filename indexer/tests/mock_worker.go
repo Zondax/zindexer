@@ -101,39 +101,13 @@ func (i *MockIndexer) MockSyncToDB() db_buffer.SyncResult {
 }
 
 func (i *MockIndexer) MockSyncToDBWithExit() db_buffer.SyncResult {
-	fmt.Println("Syncing to DB")
-
-	data, err := i.BaseIndexer.DBBuffer.GetData("dummy")
-	if err != nil {
-		panic(err)
-	}
-
-	if len(data) == 0 {
-		return db_buffer.SyncResult{}
-	}
-
-	var dummyBlocks []DummyBlock
-	var heights []uint64
-	for i, b := range data {
-		block := b.(DummyBlock)
-		height, _ := strconv.Atoi(i)
-		dummyBlocks = append(dummyBlocks, block)
-		heights = append(heights, uint64(height))
-	}
+	res := i.MockSyncToDB()
 
 	// trigger onExit call
 	i.BaseIndexer.StopIndexing()
 	time.Sleep(10 * time.Second)
-
-	// Will panic if tries to insert a duplicate
-	tx := i.BaseIndexer.DbConn.Create(dummyBlocks)
-	if tx.Error != nil {
-		panic(tx.Error)
-	}
-
-	return db_buffer.SyncResult{
-		SyncedHeights: &heights,
-	}
+	
+	return res
 }
 
 func (i *MockIndexer) NewMockWorker(id string, workerChannel chan chan WorkQueue.Work) WorkQueue.QueuedWorker {

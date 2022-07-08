@@ -96,18 +96,18 @@ func TestBasicIndexerWithExit(t *testing.T) {
 	zidx.BaseIndexer.SetGetMissingHeightsFn(zidx.MockGetMissingHeights)
 
 	go func() {
-		for {
-			time.Sleep(30 * time.Second)
-			heights, err := tracker.GetTrackedHeights(testId, dbConn)
-			if err != nil {
-				return
-			}
-
-			if len(*heights) > 200 {
-				t.Error("indexer did not stop properly!")
-			}
-		}
+		time.Sleep(60 * time.Second)
+		t.Error("Test timeout")
 	}()
 
 	zidx.BaseIndexer.StartIndexing()
+
+	heights, err := tracker.GetTrackedHeights(testId, dbConn)
+	if err != nil {
+		return
+	}
+
+	if len(*heights) != 20 {
+		t.Error("indexer did not stop properly!")
+	}
 }
