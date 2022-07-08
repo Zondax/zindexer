@@ -12,8 +12,6 @@ import (
 	"time"
 )
 
-const testId = "test"
-
 func TestMain(m *testing.M) {
 	viper.SetDefault("db_schema", "testing")
 	zindexer.InitGlobalLogger()
@@ -45,7 +43,7 @@ func TestBasicIndexer(t *testing.T) {
 	}
 
 	// Create the indexer
-	zidx := NewMockIndexer(dbConn, testId, 100, 0)
+	zidx := NewMockIndexer(dbConn, MockId, 100, 0)
 
 	// Set the cb function that will be called when a buffer's sync event triggers
 	zidx.BaseIndexer.SetSyncCB(zidx.MockSyncToDB)
@@ -61,7 +59,7 @@ func TestBasicIndexer(t *testing.T) {
 
 	for {
 		time.Sleep(30 * time.Second)
-		heights, err := tracker.GetTrackedHeights(testId, dbConn)
+		heights, err := tracker.GetTrackedHeights(MockId, dbConn)
 		if err != nil {
 			return
 		}
@@ -83,7 +81,45 @@ func TestBasicIndexerWithExit(t *testing.T) {
 	}
 
 	// Create the indexer
-	zidx := NewMockIndexer(dbConn, testId, 100, 0)
+	zidx := NewMockIndexer(dbConn, MockId, 100, 0)
+
+	// Set the cb function that will be called when a buffer's sync event triggers
+	zidx.BaseIndexer.SetSyncCB(zidx.MockSyncToDBWithExit)
+
+	// Set up workers
+	zidx.BaseIndexer.SetWorkerConstructor(zidx.NewMockWorker)
+	zidx.BaseIndexer.BuildWorkers(1)
+
+	// Set the function which retrieves missing heights
+	zidx.BaseIndexer.SetGetMissingHeightsFn(zidx.MockGetMissingHeights)
+
+	go func() {
+		time.Sleep(60 * time.Second)
+		t.Error("Test timeout")
+	}()
+
+	zidx.BaseIndexer.StartIndexing()
+
+	heights, err := tracker.GetTrackedHeights(MockId, dbConn)
+	if err != nil {
+		return
+	}
+
+	if len(*heights) != MockSyncBlockPeriod {
+		t.Error("indexer did not stop properly!")
+	}
+}
+
+func TestBasicIndexerWithExitMultiWorkers(t *testing.T) {
+	dbConn := utils.InitdbConn()
+	setupTestingDB(dbConn)
+	err := dbConn.AutoMigrate(DummyBlock{})
+	if err != nil {
+		panic(err)
+	}
+
+	// Create the indexer
+	zidx := NewMockIndexer(dbConn, MockId, 100, 0)
 
 	// Set the cb function that will be called when a buffer's sync event triggers
 	zidx.BaseIndexer.SetSyncCB(zidx.MockSyncToDBWithExit)
@@ -102,12 +138,12 @@ func TestBasicIndexerWithExit(t *testing.T) {
 
 	zidx.BaseIndexer.StartIndexing()
 
-	heights, err := tracker.GetTrackedHeights(testId, dbConn)
+	heights, err := tracker.GetTrackedHeights(MockId, dbConn)
 	if err != nil {
 		return
 	}
 
-	if len(*heights) != 20 {
+	if len(*heights) == 0 || len(*heights) > 2*MockSyncBlockPeriod {
 		t.Error("indexer did not stop properly!")
 	}
 }
