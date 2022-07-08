@@ -3,6 +3,7 @@ package db_buffer
 import (
 	"fmt"
 	"github.com/Zondax/zindexer/components/connections/zmetrics"
+	"github.com/Zondax/zindexer/components/tracker"
 	cmap "github.com/orcaman/concurrent-map"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -18,6 +19,7 @@ var (
 type SyncCB func() SyncResult
 
 type SyncResult struct {
+	Id            string
 	SyncedHeights *[]uint64 // Synced heights
 	Error         error     // Error in db insertion process
 }
@@ -49,11 +51,12 @@ func NewDBBuffer(db *gorm.DB, cfg Config) *Buffer {
 		config:      cfg,
 		syncCb: func() SyncResult {
 			return SyncResult{
+				"",
 				nil,
 				fmt.Errorf("no sync function defined. Call SetSyncFunc"),
 			}
 		},
-		SyncComplete: make(chan SyncResult),
+		SyncComplete: make(chan SyncResult, 1),
 	}
 
 	b.registerMetrics()
@@ -160,10 +163,7 @@ func (b *Buffer) callSync() {
 		}
 	}
 
-	select {
-	case b.SyncComplete <- syncResult:
-	default:
-	}
+	b.onDBSyncComplete(&syncResult)
 }
 
 func (b *Buffer) checkIsTimeToSync() {
@@ -197,5 +197,29 @@ func (b *Buffer) registerMetrics() {
 	err := zmetrics.RegisterMetric(b.metrics.totalSyncTimeHist)
 	if err != nil {
 		zap.S().Error("Could not register Metric: totalSyncTimeHist")
+	}
+}
+
+func (b *Buffer) onDBSyncComplete(r *SyncResult) {
+	if r.SyncedHeights == nil {
+		zap.S().Errorf("onDBSyncComplete received nil SyncedHeights. Check db_sync code!")
+		return
+	}
+
+	if r.Id == "" {
+		zap.S().Errorf("onDBSyncComplete received an empty 'Id'. Check db_sync code!")
+		return
+	}
+
+	if r.Error != nil {
+		zap.S().Errorf(r.Error.Error())
+		// Remove WIP heights
+		_ = tracker.UpdateInProgressHeight(false, r.SyncedHeights, r.Id, b.dbConn)
+		return
+	}
+
+	err := tracker.UpdateAndRemoveWipHeights(r.SyncedHeights, r.Id, b.dbConn)
+	if err != nil {
+		return
 	}
 }

@@ -103,8 +103,6 @@ func (i *Indexer) StartIndexing() {
 		select {
 		case <-i.jobDispatcher.EmptyQueueChan:
 			i.onJobQueueEmpty()
-		case r := <-i.DBBuffer.SyncComplete:
-			i.onDBSyncComplete(r)
 		case <-exitChan:
 			zap.S().Debugf("Exit signal catched!")
 			i.onStop()
@@ -132,25 +130,6 @@ func (i *Indexer) addPendingHeights(p *[]uint64) error {
 	// Enqueue jobs
 	i.jobDispatcher.EnqueueWorkList(&pendingJobs)
 	return nil
-}
-
-func (i *Indexer) onDBSyncComplete(r db_buffer.SyncResult) {
-	if r.SyncedHeights == nil {
-		zap.S().Errorf("onDBSyncComplete received nil SyncedHeights. Check db_sync code!")
-		return
-	}
-
-	if r.Error != nil {
-		zap.S().Errorf(r.Error.Error())
-		// Remove WIP heights
-		_ = tracker.UpdateInProgressHeight(false, r.SyncedHeights, i.Id, i.DbConn)
-		return
-	}
-
-	err := tracker.UpdateAndRemoveWipHeights(r.SyncedHeights, i.Id, i.DbConn)
-	if err != nil {
-		return
-	}
 }
 
 func (i *Indexer) onJobQueueEmpty() {
