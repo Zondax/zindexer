@@ -1,5 +1,7 @@
 package WorkQueue
 
+import "go.uber.org/zap"
+
 type IQueuedWorker interface {
 	Start()
 	DoWork(Work)
@@ -23,6 +25,10 @@ type WorkQueue struct {
 	End         chan bool
 }
 
+func (w WorkQueue) Stop() {
+	w.End <- true
+}
+
 func (w WorkQueue) ListenForJobs(cb func(Work)) {
 	go func() {
 		for {
@@ -31,6 +37,7 @@ func (w WorkQueue) ListenForJobs(cb func(Work)) {
 			case job := <-w.JobsChan:
 				cb(job)
 			case <-w.End:
+				zap.S().Info("[WorkQueue]- Stopped listening for jobs")
 				return
 			}
 		}

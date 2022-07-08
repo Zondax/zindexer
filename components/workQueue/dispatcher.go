@@ -57,19 +57,27 @@ func (j *JobDispatcher) Stop() {
 
 func (j *JobDispatcher) Start() {
 	go func() {
-		j.dispatch()
 		for {
-			work := j.jobPool.GetNewJob()
-			if work.JobId == -1 {
-				zap.S().Infof("*** No more jobs on JobPool, waiting.... ***")
-				if len(j.inputChan) == 0 {
-					j.EmptyQueueChan <- true
+			select {
+			case <-j.endChan:
+				zap.S().Info("[JobDispatcher]- Received endChan")
+				return
+			case work := <-j.inputChan:
+				worker := <-j.workerChan // wait for available channel
+				worker <- work           // dispatch work to worker
+			default:
+				work := j.jobPool.GetNewJob()
+				if work.JobId == -1 {
+					zap.S().Infof("*** No more jobs on JobPool, waiting.... ***")
+					if len(j.inputChan) == 0 {
+						j.EmptyQueueChan <- true
+					}
+					time.Sleep(j.retryTimeout)
+					continue
 				}
-				time.Sleep(j.retryTimeout)
-				continue
-			}
 
-			j.inputChan <- work
+				j.inputChan <- work
+			}
 		}
 	}()
 }
@@ -80,19 +88,4 @@ func (j *JobDispatcher) EnqueueWork(w Work) {
 
 func (j *JobDispatcher) EnqueueWorkList(w *[]Work) {
 	j.jobPool.EnqueueJobList(w)
-}
-
-func (j *JobDispatcher) dispatch() {
-	go func() {
-		for {
-			select {
-			case <-j.endChan:
-				fmt.Println("JobDispatcher received 'endChan'")
-				return
-			case work := <-j.inputChan:
-				worker := <-j.workerChan // wait for available channel
-				worker <- work           // dispatch work to worker
-			}
-		}
-	}()
 }

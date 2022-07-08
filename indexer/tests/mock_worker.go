@@ -14,6 +14,12 @@ import (
 	"time"
 )
 
+const (
+	MockSyncBlockPeriod = 10
+	MockSyncTimePeriod  = 5 * time.Second
+	MockId              = "test"
+)
+
 type DummyBlock struct {
 	Height uint64 `gorm:"unique"`
 	Hash   string
@@ -39,11 +45,11 @@ func NewMockIndexer(dbConn *gorm.DB, id string, tip, genesis uint64) *MockIndexe
 		EnableBuffer: true,
 		ComponentsCfg: indexer.ComponentsCfg{
 			DBBufferCfg: db_buffer.Config{
-				SyncTimePeriod:     5 * time.Second,
-				SyncBlockThreshold: 10,
+				SyncTimePeriod:     MockSyncTimePeriod,
+				SyncBlockThreshold: MockSyncBlockPeriod,
 			},
 			DispatcherCfg: WorkQueue.DispatcherConfig{
-				RetryTimeout: 10 * time.Second,
+				RetryTimeout: MockSyncTimePeriod,
 			},
 		},
 	}
@@ -96,8 +102,19 @@ func (i *MockIndexer) MockSyncToDB() db_buffer.SyncResult {
 	}
 
 	return db_buffer.SyncResult{
+		Id:            MockId,
 		SyncedHeights: &heights,
 	}
+}
+
+func (i *MockIndexer) MockSyncToDBWithExit() db_buffer.SyncResult {
+	res := i.MockSyncToDB()
+
+	// trigger onExit call
+	i.BaseIndexer.StopIndexing()
+	time.Sleep(10 * time.Second)
+
+	return res
 }
 
 func (i *MockIndexer) NewMockWorker(id string, workerChannel chan chan WorkQueue.Work) WorkQueue.QueuedWorker {

@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 	"os"
 	"os/signal"
+	"syscall"
 )
 
 type MissingHeightsFn func() (*[]uint64, error)
@@ -20,7 +21,8 @@ type Indexer struct {
 	missingHeightsCB MissingHeightsFn
 	Config           Config
 
-	stopChan chan bool
+	stopChan     chan bool
+	statusServer *StatusServer
 }
 
 func NewIndexer(dbConn *gorm.DB, id string, cfg Config) *Indexer {
@@ -82,7 +84,7 @@ func (i *Indexer) StartIndexing() {
 	}
 
 	exitChan := make(chan os.Signal, 1)
-	signal.Notify(exitChan, os.Interrupt)
+	signal.Notify(exitChan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 
 	// Start db_buffer
 	if i.Config.EnableBuffer {
@@ -92,16 +94,22 @@ func (i *Indexer) StartIndexing() {
 	// Start job dispatcher
 	i.jobDispatcher.Start()
 
+	// Status server
+	i.statusServer = NewStatusServer(i)
+	i.statusServer.Start()
+
 	// Main loop
 	for {
 		select {
 		case <-i.jobDispatcher.EmptyQueueChan:
 			i.onJobQueueEmpty()
-		case r := <-i.DBBuffer.SyncComplete:
-			i.onDBSyncComplete(r)
 		case <-exitChan:
-			zap.S().Infof("*** Indexer '%s' exited by system abort ***", i.Id)
-			i.onExit()
+			zap.S().Debugf("Exit signal catched!")
+			i.onStop()
+			return
+		case <-i.stopChan:
+			zap.S().Debugf("Stop signal received!")
+			i.onStop()
 			return
 		}
 	}
@@ -124,25 +132,6 @@ func (i *Indexer) addPendingHeights(p *[]uint64) error {
 	return nil
 }
 
-func (i *Indexer) onDBSyncComplete(r db_buffer.SyncResult) {
-	if r.SyncedHeights == nil {
-		zap.S().Errorf("onDBSyncComplete received nil SyncedHeights. Check db_sync code!")
-		return
-	}
-
-	if r.Error != nil {
-		zap.S().Errorf(r.Error.Error())
-		// Remove WIP heights
-		_ = tracker.UpdateInProgressHeight(false, r.SyncedHeights, i.Id, i.DbConn)
-		return
-	}
-
-	err := tracker.UpdateAndRemoveWipHeights(r.SyncedHeights, i.Id, i.DbConn)
-	if err != nil {
-		return
-	}
-}
-
 func (i *Indexer) onJobQueueEmpty() {
 	pendingHeights, err := i.missingHeightsCB()
 	if err != nil || pendingHeights == nil {
@@ -157,9 +146,14 @@ func (i *Indexer) onJobQueueEmpty() {
 }
 
 func (i *Indexer) StopIndexing() {
-	i.onExit()
+	zap.S().Info("[Indexer] - StopIndexing")
+	i.stopChan <- true
 }
 
-func (i *Indexer) onExit() {
+func (i *Indexer) onStop() {
+	zap.S().Info("[Indexer]- graceful shutdown requested!")
 	i.jobDispatcher.Stop()
+	i.DBBuffer.Stop()
+	i.statusServer.Stop()
+	zap.S().Info("[Indexer]- graceful shutdown done!")
 }
