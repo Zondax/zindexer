@@ -36,7 +36,7 @@ func setupTestingDB(db *gorm.DB) {
 	}
 }
 
-func Test_BasicIndexer(t *testing.T) {
+func TestBasicIndexer(t *testing.T) {
 	dbConn := utils.InitdbConn()
 	setupTestingDB(dbConn)
 	err := dbConn.AutoMigrate(DummyBlock{})
@@ -74,7 +74,7 @@ func Test_BasicIndexer(t *testing.T) {
 	}
 }
 
-func Test_BasicIndexerWithExit(t *testing.T) {
+func TestBasicIndexerWithExit(t *testing.T) {
 	dbConn := utils.InitdbConn()
 	setupTestingDB(dbConn)
 	err := dbConn.AutoMigrate(DummyBlock{})
