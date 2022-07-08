@@ -106,7 +106,7 @@ func (i *MockIndexer) MockSyncToDBWithExit() db_buffer.SyncResult {
 	// trigger onExit call
 	i.BaseIndexer.StopIndexing()
 	time.Sleep(10 * time.Second)
-	
+
 	return res
 }
 
