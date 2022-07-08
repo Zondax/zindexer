@@ -164,6 +164,11 @@ func (b *Buffer) callSync() {
 	}
 
 	b.onDBSyncComplete(&syncResult)
+
+	select {
+	case b.SyncComplete <- syncResult:
+	default:
+	}
 }
 
 func (b *Buffer) checkIsTimeToSync() {
