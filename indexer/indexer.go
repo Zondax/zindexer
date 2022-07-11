@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 type MissingHeightsFn func() (*[]uint64, error)
@@ -21,7 +22,8 @@ type Indexer struct {
 	missingHeightsCB MissingHeightsFn
 	Config           Config
 
-	stopChan     chan bool
+	stopReqChan  chan bool
+	stopResChan  chan bool
 	statusServer *StatusServer
 }
 
@@ -37,7 +39,8 @@ func NewIndexer(dbConn *gorm.DB, id string, cfg Config) *Indexer {
 		DBBuffer:      dbBuffer,
 		jobDispatcher: dispatcher,
 		Config:        cfg,
-		stopChan:      make(chan bool),
+		stopReqChan:   make(chan bool),
+		stopResChan:   make(chan bool),
 	}
 }
 
@@ -107,9 +110,11 @@ func (i *Indexer) StartIndexing() {
 			zap.S().Debugf("Exit signal catched!")
 			i.onStop()
 			return
-		case <-i.stopChan:
+		case <-i.stopReqChan:
 			zap.S().Debugf("Stop signal received!")
 			i.onStop()
+			// give some time to status server to be able to return the response
+			time.Sleep(5 * time.Second)
 			return
 		}
 	}
@@ -146,14 +151,16 @@ func (i *Indexer) onJobQueueEmpty() {
 }
 
 func (i *Indexer) StopIndexing() {
-	zap.S().Info("[Indexer] - StopIndexing")
-	i.stopChan <- true
+	zap.S().Info("[Indexer] - StopIndexing START")
+	i.stopReqChan <- true
+	<-i.stopResChan
+	zap.S().Info("[Indexer] - StopIndexing END")
 }
 
 func (i *Indexer) onStop() {
 	zap.S().Info("[Indexer]- graceful shutdown requested!")
 	i.jobDispatcher.Stop()
 	i.DBBuffer.Stop()
-	i.statusServer.Stop()
+	i.stopResChan <- true
 	zap.S().Info("[Indexer]- graceful shutdown done!")
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/Zondax/zindexer/components/tracker"
 	"github.com/Zondax/zindexer/indexer/tests/utils"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"os"
 	"testing"
@@ -93,16 +94,24 @@ func TestBasicIndexerWithExit(t *testing.T) {
 	// Set the function which retrieves missing heights
 	zidx.BaseIndexer.SetGetMissingHeightsFn(zidx.MockGetMissingHeights)
 
+	// Set test timeout
 	go func() {
 		time.Sleep(60 * time.Second)
 		t.Error("Test timeout")
 	}()
 
+	go func() {
+		<-zidx.dbSyncChan
+		zap.S().Infof("dbSyncChan received... Stopping indexer")
+		zidx.BaseIndexer.StopIndexing()
+	}()
+
 	zidx.BaseIndexer.StartIndexing()
 
+	// Check test results
 	heights, err := tracker.GetTrackedHeights(MockId, dbConn)
 	if err != nil {
-		return
+		t.Error(err)
 	}
 
 	if len(*heights) != MockSyncBlockPeriod {
@@ -131,16 +140,24 @@ func TestBasicIndexerWithExitMultiWorkers(t *testing.T) {
 	// Set the function which retrieves missing heights
 	zidx.BaseIndexer.SetGetMissingHeightsFn(zidx.MockGetMissingHeights)
 
+	// Set test timeout
 	go func() {
 		time.Sleep(60 * time.Second)
 		t.Error("Test timeout")
 	}()
 
+	go func() {
+		<-zidx.dbSyncChan
+		zap.S().Infof("dbSyncChan received... Stopping indexer")
+		zidx.BaseIndexer.StopIndexing()
+	}()
+
 	zidx.BaseIndexer.StartIndexing()
 
+	// Check test results
 	heights, err := tracker.GetTrackedHeights(MockId, dbConn)
 	if err != nil {
-		return
+		t.Error(err)
 	}
 
 	if len(*heights) == 0 || len(*heights) > 2*MockSyncBlockPeriod {

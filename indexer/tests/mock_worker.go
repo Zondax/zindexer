@@ -33,6 +33,7 @@ type MockIndexer struct {
 	BaseIndexer   *indexer.Indexer
 	GenesisHeight uint64
 	TipHeight     uint64
+	dbSyncChan    chan bool
 }
 
 type MockWorker struct {
@@ -58,6 +59,7 @@ func NewMockIndexer(dbConn *gorm.DB, id string, tip, genesis uint64) *MockIndexe
 		BaseIndexer:   indexer.NewIndexer(dbConn, id, config),
 		TipHeight:     tip,
 		GenesisHeight: genesis,
+		dbSyncChan:    make(chan bool, 1),
 	}
 	return &mockIndexer
 }
@@ -108,12 +110,11 @@ func (i *MockIndexer) MockSyncToDB() db_buffer.SyncResult {
 }
 
 func (i *MockIndexer) MockSyncToDBWithExit() db_buffer.SyncResult {
+	zap.S().Infof("Syncing to DB started")
+	i.dbSyncChan <- true
 	res := i.MockSyncToDB()
-
-	// trigger onExit call
-	i.BaseIndexer.StopIndexing()
 	time.Sleep(10 * time.Second)
-
+	zap.S().Infof("Syncing to DB finished")
 	return res
 }
 

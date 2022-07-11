@@ -20,10 +20,7 @@ func NewStatusServer(i *Indexer) *StatusServer {
 	r.Use(middleware.Heartbeat("/health"))
 	r.Get("/stop", func(w http.ResponseWriter, r *http.Request) {
 		i.StopIndexing()
-		_, err := w.Write([]byte("OK"))
-		if err != nil {
-			return
-		}
+		w.WriteHeader(http.StatusOK)
 	})
 
 	return &StatusServer{server: s}
