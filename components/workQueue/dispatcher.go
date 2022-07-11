@@ -9,7 +9,6 @@ import (
 type JobDispatcher struct {
 	retryTimeout   time.Duration
 	jobPool        *IndexJobPool
-	inputChan      chan Work          // channel to receive work
 	endChan        chan bool          // channel to spin down workers
 	workerChan     chan chan Work     // channel to send work to workers
 	EmptyQueueChan chan bool          // channel to communicate that queue was consumed
@@ -21,7 +20,6 @@ func NewJobDispatcher(cfg DispatcherConfig) *JobDispatcher {
 		retryTimeout:   cfg.RetryTimeout,
 		jobPool:        NewJobPool(),
 		workerChan:     make(chan chan Work),
-		inputChan:      make(chan Work, 1),
 		endChan:        make(chan bool),
 		EmptyQueueChan: make(chan bool),
 		constructorFn:  nil,
@@ -58,25 +56,20 @@ func (j *JobDispatcher) Stop() {
 func (j *JobDispatcher) Start() {
 	go func() {
 		for {
+			work := j.jobPool.GetNewJob()
+			if work.JobId == -1 {
+				zap.S().Infof("*** No more jobs on JobPool, waiting.... ***")
+				j.EmptyQueueChan <- true
+				time.Sleep(j.retryTimeout)
+				continue
+			}
+
 			select {
+			case worker := <-j.workerChan: // wait for available channel
+				worker <- work // dispatch work to worker
 			case <-j.endChan:
 				zap.S().Info("[JobDispatcher]- Received endChan")
 				return
-			case work := <-j.inputChan:
-				worker := <-j.workerChan // wait for available channel
-				worker <- work           // dispatch work to worker
-			default:
-				work := j.jobPool.GetNewJob()
-				if work.JobId == -1 {
-					zap.S().Infof("*** No more jobs on JobPool, waiting.... ***")
-					if len(j.inputChan) == 0 {
-						j.EmptyQueueChan <- true
-					}
-					time.Sleep(j.retryTimeout)
-					continue
-				}
-
-				j.inputChan <- work
 			}
 		}
 	}()
