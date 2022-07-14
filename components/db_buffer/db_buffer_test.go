@@ -92,7 +92,7 @@ func Test_InsertAndGetTransactions_BlocksThreshold(t *testing.T) {
 		panic("timeout when waiting for test to finish")
 	}()
 
-	// Wait until sync is completes
+	// Wait until sync is complete
 	<-dbBuffer.SyncComplete
 
 	if eq := assert.ElementsMatch(t, allTxs, retrievedTx); !eq {
@@ -143,4 +143,47 @@ func Test_InsertAndGetTransactions_Ticker(t *testing.T) {
 	}
 
 	dbBuffer.Stop()
+}
+
+func Test_BufferStop(t *testing.T) {
+	retrievedTx = nil
+	dbBuffer = NewDBBuffer(nil, Config{
+		SyncTimePeriod:     TestSyncPeriod,
+		SyncBlockThreshold: TestBlocksThreshold,
+	})
+
+	dbBuffer.SetSyncFunc(SyncCallback)
+	dbBuffer.Start()
+
+	totalBlocks := 500
+	totalTxsInBlock := 10
+
+	go func() {
+		time.Sleep(1 + time.Second)
+		dbBuffer.Stop()
+	}()
+
+	go func() {
+		time.Sleep(TestTimeout)
+		panic("timeout when waiting for test to finish")
+	}()
+
+	var allTxs []ReportTransaction
+	for h := 0; h < totalBlocks; h++ {
+		var txs []ReportTransaction
+		for t := 0; t < totalTxsInBlock; t++ {
+			txs = append(txs, createMockTx(h))
+		}
+
+		allTxs = append(allTxs, txs...)
+		err := dbBuffer.InsertData("transaction", int64(h), txs, true)
+		fmt.Println("inserting mock tx for height", h)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if len(allTxs) == 0 {
+			t.Fatal("No txs was inserted into db!")
+		}
+	}
 }

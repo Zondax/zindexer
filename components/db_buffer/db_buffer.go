@@ -38,6 +38,7 @@ type Buffer struct {
 	metrics      BufferMetrics
 	config       Config
 	syncCb       SyncCB
+	enabled      bool
 	SyncComplete chan SyncResult
 }
 
@@ -67,10 +68,12 @@ func NewDBBuffer(db *gorm.DB, cfg Config) *Buffer {
 // Start starts listening for syncing triggering events
 func (b *Buffer) Start() {
 	go b.checkIsTimeToSync()
+	b.enabled = true
 }
 
 // Stop stops listening for syncing triggering events
 func (b *Buffer) Stop() {
+	b.enabled = false
 	b.syncTicker.Stop()
 	// closes the loop in func checkIsTimeToSync
 	b.exitChan <- true
@@ -89,6 +92,10 @@ func (b *Buffer) SetSyncFunc(cb SyncCB) {
 // InsertData inserts 'data' into the buffer under the key 'key'
 // if notify is set to true, the condition 'SyncBlockThreshold' will be tested for that specific key
 func (b *Buffer) InsertData(key string, height int64, data interface{}, notify bool) error {
+	if !b.enabled {
+		return nil
+	}
+
 	b.syncMutex.Lock()
 	defer b.syncMutex.Unlock()
 
