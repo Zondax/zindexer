@@ -4,24 +4,24 @@ import "go.uber.org/zap"
 
 type IQueuedWorker interface {
 	Start()
-	DoWork(Work)
+	DoWork(Job)
 }
 
 type QueuedWorker struct {
 	Worker IQueuedWorker
 }
 
-type WorkerConstructor func(string, chan chan Work) QueuedWorker
+type WorkerConstructor func(string, chan chan Job) QueuedWorker
 
-type Work struct {
+type Job struct {
 	JobId  int64
 	Params interface{}
 }
 
 type WorkQueue struct {
 	ID          string
-	WorkersChan chan chan Work // used to communicate between dispatcher and workers
-	JobsChan    chan Work
+	WorkersChan chan chan Job // used to communicate between dispatcher and workers
+	JobsChan    chan Job
 	End         chan bool
 }
 
@@ -29,7 +29,7 @@ func (w WorkQueue) Stop() {
 	w.End <- true
 }
 
-func (w WorkQueue) ListenForJobs(cb func(Work)) {
+func (w WorkQueue) ListenForJobs(cb func(Job)) {
 	go func() {
 		for {
 			w.WorkersChan <- w.JobsChan

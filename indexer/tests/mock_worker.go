@@ -64,7 +64,7 @@ func NewMockIndexer(dbConn *gorm.DB, id string, tip, genesis uint64) *MockIndexe
 	return &mockIndexer
 }
 
-func (i *MockIndexer) MockGetMissingHeights() (*[]uint64, error) {
+func (i *MockIndexer) MockGetMissingJobs() ([]WorkQueue.Job, error) {
 	heights, err := tracker.GetMissingHeights(i.TipHeight, i.GenesisHeight, tracker.NoReturnLimit,
 		i.BaseIndexer.Id, i.BaseIndexer.DbConn)
 	if err != nil {
@@ -72,8 +72,12 @@ func (i *MockIndexer) MockGetMissingHeights() (*[]uint64, error) {
 	}
 
 	i.TipHeight += uint64(utils.RandomInt64(10))
+	jobs := make([]WorkQueue.Job, len(*heights))
+	for i, h := range *heights {
+		jobs[i] = WorkQueue.Job{JobId: int64(h)}
+	}
 
-	return heights, nil
+	return jobs, nil
 }
 
 func (i *MockIndexer) MockSyncToDB() db_buffer.SyncResult {
@@ -118,13 +122,13 @@ func (i *MockIndexer) MockSyncToDBWithExit() db_buffer.SyncResult {
 	return res
 }
 
-func (i *MockIndexer) NewMockWorker(id string, workerChannel chan chan WorkQueue.Work) WorkQueue.QueuedWorker {
+func (i *MockIndexer) NewMockWorker(id string, workerChannel chan chan WorkQueue.Job) WorkQueue.QueuedWorker {
 	worker := MockWorker{
 		buffer: i.BaseIndexer.DBBuffer,
 		workQueue: WorkQueue.WorkQueue{
 			ID:          id,
 			WorkersChan: workerChannel,
-			JobsChan:    make(chan WorkQueue.Work),
+			JobsChan:    make(chan WorkQueue.Job),
 			End:         make(chan bool),
 		},
 	}
@@ -138,7 +142,7 @@ func (m *MockWorker) Start() {
 	zap.S().Infof("Worker %s listening for jobs", m.workQueue.ID)
 }
 
-func (m *MockWorker) DoWork(w WorkQueue.Work) {
+func (m *MockWorker) DoWork(w WorkQueue.Job) {
 	fmt.Println("Worker received work id", w.JobId)
 	data := DummyBlock{
 		Height: uint64(w.JobId),

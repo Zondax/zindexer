@@ -54,7 +54,7 @@ func TestBasicIndexer(t *testing.T) {
 	zidx.BaseIndexer.BuildWorkers(20)
 
 	// Set the function which retrieves missing heights
-	zidx.BaseIndexer.SetGetMissingHeightsFn(zidx.MockGetMissingHeights)
+	zidx.BaseIndexer.SetGetMissingHeightsFn(zidx.MockGetMissingJobs)
 
 	go zidx.BaseIndexer.StartIndexing()
 
@@ -92,7 +92,7 @@ func TestBasicIndexerWithExit(t *testing.T) {
 	zidx.BaseIndexer.BuildWorkers(1)
 
 	// Set the function which retrieves missing heights
-	zidx.BaseIndexer.SetGetMissingHeightsFn(zidx.MockGetMissingHeights)
+	zidx.BaseIndexer.SetGetMissingHeightsFn(zidx.MockGetMissingJobs)
 
 	// Set test timeout
 	go func() {
@@ -138,7 +138,7 @@ func TestBasicIndexerWithExitMultiWorkers(t *testing.T) {
 	zidx.BaseIndexer.BuildWorkers(20)
 
 	// Set the function which retrieves missing heights
-	zidx.BaseIndexer.SetGetMissingHeightsFn(zidx.MockGetMissingHeights)
+	zidx.BaseIndexer.SetGetMissingHeightsFn(zidx.MockGetMissingJobs)
 
 	// Set test timeout
 	go func() {

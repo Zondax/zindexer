@@ -12,15 +12,15 @@ import (
 	"time"
 )
 
-type MissingHeightsFn func() (*[]uint64, error)
+type MissingJobsFn func() ([]WorkQueue.Job, error)
 
 type Indexer struct {
-	Id               string
-	DbConn           *gorm.DB
-	DBBuffer         *db_buffer.Buffer
-	jobDispatcher    *WorkQueue.JobDispatcher
-	missingHeightsCB MissingHeightsFn
-	Config           Config
+	Id            string
+	DbConn        *gorm.DB
+	DBBuffer      *db_buffer.Buffer
+	jobDispatcher *WorkQueue.JobDispatcher
+	missingJobsCB MissingJobsFn
+	Config        Config
 
 	stopReqChan  chan bool
 	stopResChan  chan bool
@@ -74,8 +74,12 @@ func (i *Indexer) SetSyncCB(cb db_buffer.SyncCB) {
 	i.DBBuffer.SetSyncFunc(cb)
 }
 
-func (i *Indexer) SetGetMissingHeightsFn(fn MissingHeightsFn) {
-	i.missingHeightsCB = fn
+func (i *Indexer) SetGetMissingHeightsFn(fn MissingJobsFn) {
+	i.missingJobsCB = fn
+}
+
+func (i *Indexer) EnqueueJob(work WorkQueue.Job) {
+	i.jobDispatcher.EnqueueJob(work)
 }
 
 func (i *Indexer) StartIndexing() {
@@ -120,31 +124,37 @@ func (i *Indexer) StartIndexing() {
 	}
 }
 
-func (i *Indexer) addPendingHeights(p *[]uint64) error {
-	pendingJobs := make([]WorkQueue.Work, len(*p))
-	for i, h := range *p {
-		pendingJobs[i] = WorkQueue.Work{JobId: int64(h)}
+func (i *Indexer) addPendingHeights(jobs []WorkQueue.Job) error {
+	pendingJobHeights := make([]uint64, len(jobs))
+	for i, j := range jobs {
+		pendingJobHeights[i] = uint64(j.JobId)
 	}
 
 	// Mark pending jobs as WIP in tracking table
-	err := tracker.UpdateInProgressHeight(true, p, i.Id, i.DbConn)
+	err := tracker.UpdateInProgressHeight(true, &pendingJobHeights, i.Id, i.DbConn)
 	if err != nil {
 		return err
 	}
 
 	// Enqueue jobs
-	i.jobDispatcher.EnqueueWorkList(&pendingJobs)
+	i.jobDispatcher.EnqueueJobList(&jobs)
 	return nil
 }
 
 func (i *Indexer) onJobQueueEmpty() {
-	pendingHeights, err := i.missingHeightsCB()
-	if err != nil || pendingHeights == nil {
+	pendingJobs, err := i.missingJobsCB()
+	if err != nil {
+		zap.S().Errorf("error on calling missing jobs CB: %s", err)
+		return
+	}
+
+	if len(pendingJobs) == 0 {
 		zap.S().Infof("pending blocks list is empty, retrying...")
 		return
 	}
-	zap.S().Infof("Got %d pending heights", len(*pendingHeights))
-	err = i.addPendingHeights(pendingHeights)
+
+	zap.S().Infof("Got %d pending jobs", len(pendingJobs))
+	err = i.addPendingHeights(pendingJobs)
 	if err != nil {
 		zap.S().Errorf(err.Error())
 	}
