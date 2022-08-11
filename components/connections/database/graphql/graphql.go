@@ -166,15 +166,36 @@ func HasuraApiRequest(host string, token string, body string) error {
 	return nil
 }
 
-func HasuraCreateView(host string, token string, viewName string, viewAs string) error {
+func HasuraCreateView(host string, token string, viewName string, viewAs string, materialized bool) error {
+	var materializedStr = ""
+	if materialized {
+		materializedStr = "MATERIALIZED"
+	}
 	host = strings.Replace(host, "graphql", "query", 1)
 	body := fmt.Sprintf(`
 	{
 		"type": "run_sql",
 		"args": {
-			"sql": "CREATE VIEW %s as %s"
+			"sql": "CREATE %s VIEW %s as %s"
 		}
-	}`, viewName, viewAs)
+	}`, materializedStr, viewName, viewAs)
+
+	err := HasuraApiRequest(host, token, body)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func RefreshMaterializedView(host string, token string, viewName string) error {
+	host = strings.Replace(host, "graphql", "query", 1)
+	body := fmt.Sprintf(`
+	{
+		"type": "run_sql",
+		"args": {
+			"sql": "REFRESH MATERIALIZED VIEW %s;"
+		}
+	}`, viewName)
 
 	err := HasuraApiRequest(host, token, body)
 	if err != nil {
