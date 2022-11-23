@@ -54,11 +54,11 @@ func UpdateTrackedHeights(heights *[]uint64, id string, db *gorm.DB) error {
 		return err
 	}
 
-	newSections := buildSectionsFromSlice(heights)
-	newHeights := buildSliceFromSections(newSections)
+	newSections := BuildSectionsFromSlice(heights)
+	newHeights := BuildSliceFromSections(newSections)
 
 	newSections = append(newSections, dbSections...)
-	mergedSections := mergeSections(newSections)
+	mergedSections := MergeSections(newSections)
 
 	sectionId = SectionId{Sections: mergedSections, IndexerId: id}
 
@@ -135,7 +135,7 @@ func GetMissingHeights(chainTip uint64, genesisHeight uint64, limit uint64, id s
 		},
 	)
 
-	missing := findGapsInSections(dbSections)
+	missing := FindGapsInSections(dbSections)
 	setTotalMissingHeightsMetric(id, len(*missing))
 
 	if limit != NoReturnLimit && uint64(len(*missing)) > limit {
@@ -191,7 +191,7 @@ func GetTrackedHeights(id string, db *gorm.DB) (*[]uint64, error) {
 		return nil, err
 	}
 
-	tracked := buildSliceFromSections(sectionId.Sections)
+	tracked := BuildSliceFromSections(sectionId.Sections)
 	return tracked, nil
 }
 

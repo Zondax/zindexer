@@ -17,7 +17,7 @@ func (Section) TableName() string {
 	return postgres.GetTableName("tracking")
 }
 
-func buildSectionsFromSlice(heights *[]uint64) Sections {
+func BuildSectionsFromSlice(heights *[]uint64) Sections {
 	var sections Sections
 	if heights == nil {
 		return sections
@@ -30,11 +30,11 @@ func buildSectionsFromSlice(heights *[]uint64) Sections {
 		})
 	}
 
-	return mergeSections(sections)
+	return MergeSections(sections)
 }
 
-func buildSliceFromSections(sections Sections) *[]uint64 {
-	sections = mergeSections(sections)
+func BuildSliceFromSections(sections Sections) *[]uint64 {
+	sections = MergeSections(sections)
 	if len(sections) == 0 {
 		return &[]uint64{}
 	}
@@ -55,9 +55,9 @@ func buildSliceFromSections(sections Sections) *[]uint64 {
 	return &a
 }
 
-func findGapsInSections(sections Sections) *[]uint64 {
+func FindGapsInSections(sections Sections) *[]uint64 {
 	// Merge sections and estimate max capacity
-	sections = mergeSections(sections)
+	sections = MergeSections(sections)
 	if len(sections) < 2 {
 		return &[]uint64{}
 	}
@@ -85,7 +85,7 @@ func findGapsInSections(sections Sections) *[]uint64 {
 	return &missing
 }
 
-func mergeSections(sections Sections) Sections {
+func MergeSections(sections Sections) Sections {
 	var merged Sections
 
 	if len(sections) > 1 {
@@ -127,8 +127,8 @@ func mergeSections(sections Sections) Sections {
 
 // RemoveSections removes any sections included in (toRemove: Sections) that intersect with (sections: Sections)
 func RemoveSections(sections, toRemove Sections) Sections {
-	sectionsFlat := buildSliceFromSections(sections)
-	toRemoveFlat := buildSliceFromSections(toRemove)
+	sectionsFlat := BuildSliceFromSections(sections)
+	toRemoveFlat := BuildSliceFromSections(toRemove)
 
 	resultFlat := make([]uint64, 0, len(*sectionsFlat))
 
@@ -151,7 +151,7 @@ func RemoveSections(sections, toRemove Sections) Sections {
 	}
 
 	resultFlat = append(resultFlat, (*sectionsFlat)[i:]...)
-	result := buildSectionsFromSlice(&resultFlat)
+	result := BuildSectionsFromSlice(&resultFlat)
 
 	return result
 }

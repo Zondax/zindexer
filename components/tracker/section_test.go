@@ -46,7 +46,7 @@ func TestTracker_MergeSections(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := mergeSections(tt.sections)
+		got := MergeSections(tt.sections)
 		fmt.Println(tt.sections, " ->", got)
 		if !reflect.DeepEqual(got, tt.want) {
 			t.Errorf("got: %v, want: %v", got, tt.want)
@@ -78,7 +78,7 @@ func TestTracker_BuildSectionsFromSlice(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := buildSectionsFromSlice(&tt.heights)
+		got := BuildSectionsFromSlice(&tt.heights)
 		fmt.Println(tt.heights, " ->", got)
 		if !reflect.DeepEqual(got, tt.want) {
 			t.Errorf("got: %v, want: %v", got, tt.want)
@@ -108,7 +108,7 @@ func TestTracker_BuildSliceFromSection(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := buildSliceFromSections(tt.section)
+		got := BuildSliceFromSections(tt.section)
 		fmt.Println(tt.section, " ->", got)
 		if !reflect.DeepEqual(got, tt.want) {
 			t.Errorf("got: %v, want: %v", got, tt.want)
@@ -140,7 +140,7 @@ func TestTracker_FindGapsInSection(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got := findGapsInSections(tt.sections)
+		got := FindGapsInSections(tt.sections)
 		fmt.Println(tt.sections, " ->", got)
 		if !reflect.DeepEqual(got, tt.want) {
 			t.Errorf("got: %v, want: %v", got, tt.want)
