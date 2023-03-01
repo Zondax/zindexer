@@ -1,10 +1,9 @@
 package graphql
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/Zondax/zindexer/components/connections/database"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -72,7 +71,7 @@ func (c *GraphqlSubscriptionClient) onClientConnected() {
 	if c.connected {
 		// Client already connected, reset the client just in case
 		zap.S().Warnf("Client already connected, resetting...")
-		err := c.Client.Reset()
+		err := c.Client.Run()
 		if err != nil {
 			zap.S().Warnf("Could not reset Graphql client")
 		}
@@ -94,7 +93,7 @@ func onClientError(sc *graphql.SubscriptionClient, err error) error {
 	return err
 }
 
-func (c *GraphqlSubscriptionClient) Subscribe(query interface{}, handler func(message *json.RawMessage, err error) error) error {
+func (c *GraphqlSubscriptionClient) Subscribe(query interface{}, handler func(message []byte, err error) error) error {
 	id, err := c.Client.Subscribe(query, nil, handler)
 	if err != nil {
 		return err
@@ -158,7 +157,7 @@ func HasuraApiRequest(host string, token string, body string) error {
 	}
 	defer res.Body.Close()
 
-	b, err := ioutil.ReadAll(res.Body)
+	b, err := io.ReadAll(res.Body)
 	zap.S().Debug(string(b))
 	if err != nil {
 		return err

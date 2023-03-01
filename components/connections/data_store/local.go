@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"go.uber.org/zap"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 )
@@ -19,7 +18,7 @@ func newLocalClient(config DataStoreConfig) (LocalClient, error) {
 
 func (c LocalClient) GetFile(object string, bucket string) (*[]byte, error) {
 	targetObject := fmt.Sprintf("%s/%s/%s", c.DataPath, bucket, object)
-	data, err := ioutil.ReadFile(targetObject)
+	data, err := os.ReadFile(targetObject)
 	if err != nil {
 		zap.S().Errorf("err when getting object from store: %v", err.Error())
 		return nil, err
