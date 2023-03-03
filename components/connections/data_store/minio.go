@@ -3,6 +3,7 @@ package data_store
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"go.uber.org/zap"
@@ -16,7 +17,7 @@ type MinioClient struct {
 func newMinioClient(config DataStoreConfig) (MinioClient, error) {
 	minioClient, err := minio.New(config.Url, &minio.Options{
 		Creds:  credentials.NewStaticV4(config.User, config.Password, ""),
-		Secure: true,
+		Secure: config.UseHttps,
 	})
 	if err != nil {
 		zap.S().Error(err.Error())
@@ -30,7 +31,7 @@ func (c MinioClient) GetClient() *minio.Client {
 	return c.client
 }
 
-func (c MinioClient) GetFile(object string, bucket string) (*[]byte, error) {
+func (c MinioClient) GetFile(object string, bucket string) ([]byte, error) {
 	obj, err := c.GetClient().GetObject(context.Background(), bucket, object, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, err
@@ -43,19 +44,28 @@ func (c MinioClient) GetFile(object string, bucket string) (*[]byte, error) {
 	}
 
 	data := buf.Bytes()
-	return &data, nil
+	return data, nil
 }
 
-func (c MinioClient) List(bucket string, prefix string) *[]string {
+func (c MinioClient) List(bucket string, prefix string) ([]string, error) {
 	var list []string
+	exists, err := c.client.BucketExists(context.Background(), bucket)
+	if err != nil {
+		return nil, err
+	}
+
+	if !exists {
+		return nil, fmt.Errorf("bucket '%s' doesn't exists", bucket)
+	}
+
 	for object := range c.client.ListObjects(context.Background(), bucket, minio.ListObjectsOptions{Prefix: prefix, Recursive: true}) {
 		list = append(list, object.Key)
 	}
 
-	return &list
+	return list, nil
 }
 
-func (c MinioClient) UploadFile(name string, dest string) error {
+func (c MinioClient) UploadFromFile(name string, dest string) error {
 	file, err := os.Open(name)
 	if err != nil {
 		return err
@@ -72,9 +82,19 @@ func (c MinioClient) UploadFile(name string, dest string) error {
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (c MinioClient) UploadFromBytes(data []byte, destFolder string, destName string) error {
+	_, err := c.client.PutObject(context.Background(), destFolder, destName, bytes.NewReader(data),
+		int64(len(data)), minio.PutObjectOptions{ContentType: "application/octet-stream"})
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 func (c MinioClient) StorageType() string {
-	return MinIOStorage
+	return S3Storage
 }

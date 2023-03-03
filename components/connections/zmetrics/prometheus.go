@@ -7,6 +7,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"net/http"
+	"time"
 )
 
 type PrometheusCollector prometheus.Collector
@@ -46,7 +47,13 @@ func StartMetricsServer(port string, endpoint string) chan error {
 	errChan := make(chan error)
 
 	go func() {
-		err := http.ListenAndServe(fmt.Sprintf(":%s", port), router)
+		server := &http.Server{
+			Addr:              fmt.Sprintf(":%s", port),
+			ReadHeaderTimeout: 5 * time.Second,
+			Handler:           router,
+		}
+
+		err := server.ListenAndServe()
 		if err != nil {
 			zap.S().Errorf("Prometheus server error: %v", err)
 			errChan <- err
