@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"go.uber.org/zap"
 	"net/http"
+	"time"
 )
 
 type StatusServer struct {
@@ -14,7 +15,7 @@ type StatusServer struct {
 
 func NewStatusServer(i *Indexer) *StatusServer {
 	r := chi.NewRouter()
-	s := &http.Server{Addr: ":3300", Handler: r}
+	s := &http.Server{Addr: ":3300", ReadHeaderTimeout: 5 * time.Second, Handler: r}
 
 	// setup endpoints
 	r.Use(middleware.Heartbeat("/health"))
