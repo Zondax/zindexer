@@ -6,14 +6,14 @@ import (
 )
 
 const (
-	MinIOStorage = "minio"
+	S3Storage    = "s3"
 	LocalStorage = "local"
 )
 
 func NewDataStoreClient(config DataStoreConfig) (DataStoreClient, error) {
 	zap.S().Infof("[DataStore] - Creating client for service '%s'", config.Service)
 	switch config.Service {
-	case MinIOStorage:
+	case S3Storage:
 		client, err := newMinioClient(config)
 		return DataStoreClient{client}, err
 	case LocalStorage:

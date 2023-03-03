@@ -1,9 +1,10 @@
 package data_store
 
 type IDataStoreClient interface {
-	GetFile(name string, location string) (*[]byte, error)
-	UploadFile(name string, dest string) error
-	List(dir string, prefix string) *[]string
+	GetFile(name string, location string) ([]byte, error)
+	UploadFromFile(filePath string, dest string) error
+	UploadFromBytes(data []byte, destFolder string, destName string) error
+	List(dir string, prefix string) ([]string, error)
 	StorageType() string
 }
 
@@ -13,6 +14,7 @@ type DataStoreClient struct {
 
 type DataStoreConfig struct {
 	Url      string
+	UseHttps bool
 	User     string
 	Password string
 	Service  string

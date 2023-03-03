@@ -16,7 +16,7 @@ func newLocalClient(config DataStoreConfig) (LocalClient, error) {
 	return LocalClient{DataPath: config.DataPath}, nil
 }
 
-func (c LocalClient) GetFile(object string, bucket string) (*[]byte, error) {
+func (c LocalClient) GetFile(object string, bucket string) ([]byte, error) {
 	targetObject := fmt.Sprintf("%s/%s/%s", c.DataPath, bucket, object)
 	data, err := os.ReadFile(targetObject)
 	if err != nil {
@@ -24,15 +24,15 @@ func (c LocalClient) GetFile(object string, bucket string) (*[]byte, error) {
 		return nil, err
 	}
 
-	return &data, nil
+	return data, nil
 }
 
-func (c LocalClient) List(bucket string, prefix string) *[]string {
+func (c LocalClient) List(bucket string, prefix string) ([]string, error) {
 	var list []string
 	files, err := os.ReadDir(fmt.Sprintf("%s/%s", c.DataPath, bucket))
 	if err != nil {
 		zap.S().Errorf("could not read directory '%s': %v", bucket, err)
-		return &list
+		return nil, err
 	}
 
 	for _, file := range files {
@@ -42,10 +42,10 @@ func (c LocalClient) List(bucket string, prefix string) *[]string {
 		}
 	}
 
-	return &list
+	return list, nil
 }
 
-func (c LocalClient) UploadFile(name string, dest string) error {
+func (c LocalClient) UploadFromFile(name string, dest string) error {
 	file, err := os.Open(name)
 	if err != nil {
 		return err
@@ -69,6 +69,10 @@ func (c LocalClient) UploadFile(name string, dest string) error {
 
 	_, err = io.Copy(out, file)
 	return err
+}
+
+func (c LocalClient) UploadFromBytes(data []byte, destFolder string, destName string) error {
+	panic("not implemented")
 }
 
 func (c LocalClient) StorageType() string {
