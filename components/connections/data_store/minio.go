@@ -8,6 +8,7 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"go.uber.org/zap"
 	"os"
+	"sync"
 )
 
 type MinioClient struct {
@@ -63,6 +64,45 @@ func (c MinioClient) List(bucket string, prefix string) ([]string, error) {
 	}
 
 	return list, nil
+}
+
+func (c MinioClient) ListChan(ctx context.Context, bucket string, prefix string) (<-chan string, error) {
+	exists, err := c.client.BucketExists(ctx, bucket)
+	if err != nil {
+		return nil, err
+	}
+
+	if !exists {
+		return nil, fmt.Errorf("bucket '%s' doesn't exists", bucket)
+	}
+
+	outChan := make(chan string, 10)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for object := range c.client.ListObjects(ctx, bucket, minio.ListObjectsOptions{Prefix: prefix, Recursive: true}) {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				outChan <- object.Key
+			}
+		}
+	}()
+
+	go func() {
+		<-ctx.Done()
+		close(outChan)
+	}()
+
+	go func() {
+		wg.Wait()
+		close(outChan)
+	}()
+
+	return outChan, nil
 }
 
 func (c MinioClient) UploadFromFile(name string, dest string) error {

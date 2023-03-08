@@ -1,6 +1,7 @@
 package data_store
 
 import (
+	"context"
 	"fmt"
 	"go.uber.org/zap"
 	"io"
@@ -43,6 +44,10 @@ func (c LocalClient) List(bucket string, prefix string) ([]string, error) {
 	}
 
 	return list, nil
+}
+
+func (c LocalClient) ListChan(ctx context.Context, bucket string, prefix string) (<-chan string, error) {
+	panic("not implemented")
 }
 
 func (c LocalClient) UploadFromFile(name string, dest string) error {
