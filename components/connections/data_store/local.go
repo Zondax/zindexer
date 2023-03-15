@@ -13,11 +13,11 @@ type LocalClient struct {
 	DataPath string
 }
 
-func newLocalClient(config DataStoreConfig) (LocalClient, error) {
-	return LocalClient{DataPath: config.DataPath}, nil
+func newLocalClient(config DataStoreConfig) (*LocalClient, error) {
+	return &LocalClient{DataPath: config.DataPath}, nil
 }
 
-func (c LocalClient) GetFile(object string, bucket string) ([]byte, error) {
+func (c *LocalClient) GetFile(object string, bucket string) ([]byte, error) {
 	targetObject := fmt.Sprintf("%s/%s/%s", c.DataPath, bucket, object)
 	data, err := os.ReadFile(targetObject)
 	if err != nil {
@@ -28,7 +28,7 @@ func (c LocalClient) GetFile(object string, bucket string) ([]byte, error) {
 	return data, nil
 }
 
-func (c LocalClient) List(bucket string, prefix string) ([]string, error) {
+func (c *LocalClient) List(bucket string, prefix string) ([]string, error) {
 	var list []string
 	files, err := os.ReadDir(fmt.Sprintf("%s/%s", c.DataPath, bucket))
 	if err != nil {
@@ -46,11 +46,11 @@ func (c LocalClient) List(bucket string, prefix string) ([]string, error) {
 	return list, nil
 }
 
-func (c LocalClient) ListChan(ctx context.Context, bucket string, prefix string) (<-chan string, error) {
+func (c *LocalClient) ListChan(ctx context.Context, bucket string, prefix string) (<-chan string, error) {
 	panic("not implemented")
 }
 
-func (c LocalClient) UploadFromFile(name string, dest string) error {
+func (c *LocalClient) UploadFromFile(name string, dest string) error {
 	file, err := os.Open(name)
 	if err != nil {
 		return err
@@ -76,10 +76,10 @@ func (c LocalClient) UploadFromFile(name string, dest string) error {
 	return err
 }
 
-func (c LocalClient) UploadFromBytes(data []byte, destFolder string, destName string) error {
+func (c *LocalClient) UploadFromBytes(data []byte, destFolder string, destName string) error {
 	panic("not implemented")
 }
 
-func (c LocalClient) StorageType() string {
+func (c *LocalClient) StorageType() string {
 	return LocalStorage
 }
