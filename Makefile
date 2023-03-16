@@ -18,6 +18,7 @@ check-modtidy:
 	git diff --exit-code -- go.mod go.sum
 
 lint:
+	@echo "==> Checking that code complies with golangci-lint requirements..."
 	golangci-lint --version
 	golangci-lint run -E gofmt -E gosec -E goconst -E gocritic --timeout 5m
 
@@ -25,7 +26,12 @@ fmt:
 	gofmt -w -s $(GOFMT_FILES)
 
 fmt-check:
+	@echo "==> Checking that code complies with gofmt requirements..."
 	gofmt -l -s $(GOFMT_FILES)
+
+vet:
+	@echo "==> Checking that code complies with go vet requirements..."
+	go vet $$(go list ./...)
 
 test: build
 	go test -race ./...
