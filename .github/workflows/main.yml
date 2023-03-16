@@ -33,6 +33,8 @@ jobs:
       - run: make build
       - name: ModTidy check
         run: make check-modtidy
+      - name: Fmt check
+        run: make fmt-check
       - name: Lint check
         run: |
           make install_lint

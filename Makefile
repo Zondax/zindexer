@@ -1,3 +1,5 @@
+GOFMT_FILES?=$$(find . -name '*.go')
+
 build:
 	go build ./...
 
@@ -9,7 +11,7 @@ gitclean:
 	git submodule foreach --recursive git clean -xfd
 
 install_lint:
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.50.1
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.0
 
 check-modtidy:
 	go mod tidy
@@ -18,6 +20,12 @@ check-modtidy:
 lint:
 	golangci-lint --version
 	golangci-lint run -E gofmt -E gosec -E goconst -E gocritic --timeout 5m
+
+fmt:
+	gofmt -w -s $(GOFMT_FILES)
+
+fmt-check:
+	gofmt -l -s $(GOFMT_FILES)
 
 test: build
 	go test -race ./...
