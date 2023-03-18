@@ -1,16 +1,12 @@
 package data_store
 
 import (
-	"log"
-	"path/filepath"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 func elapsed(start time.Time, message string) {
 	elapsed := time.Since(start)
-	log.Printf("%s duration %s\n", message, elapsed)
-}
-
-func filename(file string) string {
-	return filepath.Base(file)
+	zap.S().Debugf("%s duration %s", message, elapsed)
 }
