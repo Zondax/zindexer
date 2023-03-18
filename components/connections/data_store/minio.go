@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"time"
 
 	"github.com/minio/minio-go/v7"
@@ -66,26 +65,7 @@ func (c *MinioClient) GetFile(object string, bucket string) ([]byte, error) {
 }
 
 func (c *MinioClient) List(bucket string, prefix string) ([]string, error) {
-	if len(bucket) == 0 || len(prefix) == 0 {
-		zap.S().Errorf("Bucket or prefix are empty")
-		return nil, fmt.Errorf("Bucket or prefix are empty")
-	}
-	start := time.Now()
-	defer elapsed(start, "["+c.StorageType()+"] List files")
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	list := []string{}
-	reader, err := c.ListChan(ctx, bucket, prefix)
-	if err != nil {
-		return nil, err
-	}
-	for file := range reader {
-		list = append(list, file)
-	}
-
-	return list, nil
+	return list(c, bucket, prefix)
 }
 
 func (c *MinioClient) ListChan(ctx context.Context, bucket string, prefix string) (<-chan string, error) {
@@ -124,40 +104,11 @@ func (c *MinioClient) ListChan(ctx context.Context, bucket string, prefix string
 }
 
 func (c *MinioClient) UploadFromFile(name string, folder string) error {
-	if len(name) == 0 || len(folder) == 0 {
-		zap.S().Errorf("Name or folder are empty")
-		return fmt.Errorf("Name or folder are empty")
-	}
-
-	start := time.Now()
-	defer elapsed(start, "["+c.StorageType()+"] Upload from file")
-
-	file, err := os.Open(name)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	fileStat, err := file.Stat()
-	if err != nil {
-		return err
-	}
-
-	return c.UploadFromReader(file, fileStat.Size(), folder, file.Name())
+	return uploadFromFile(c, name, folder)
 }
 
 func (c *MinioClient) UploadFromBytes(data []byte, folder string, name string) error {
-	if len(data) == 0 || len(folder) == 0 || len(name) == 0 {
-		zap.S().Errorf("Data, folder or name are empty")
-		return fmt.Errorf("Data, folder or name are empty")
-	}
-
-	start := time.Now()
-	defer elapsed(start, "["+c.StorageType()+"] Upload from bytes")
-
-	reader := bytes.NewReader(data)
-
-	return c.UploadFromReader(reader, int64(reader.Len()), folder, name)
+	return uploadFromBytes(c, data, folder, name)
 }
 
 func (c *MinioClient) UploadFromReader(data io.Reader, size int64, folder string, name string) error {
