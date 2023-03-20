@@ -8,15 +8,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	s5store "github.com/peak/s5cmd/storage"
 	s5url "github.com/peak/s5cmd/storage/url"
 	"go.uber.org/zap"
 )
 
-const (
+var (
 	s5UploadConcurrency  = 5
-	s5UploadPartSize     = 10 * 1024 * 1024 // MiB
+	s5UploadPartSize     = int64(5 * 1024 * 1024) // MiB
 	s5UploadStorageClass = "STANDARD"
+	s5DownloadPartSize   = int64(5 * 1024 * 1024) // MiB
 )
 
 type S5cmdClient struct {
@@ -31,10 +33,19 @@ type S5cmdList struct {
 }
 
 func newS5cmdClient(config DataStoreConfig) (*S5cmdClient, error) {
+	protocol := "https://"
+	if !config.UseHttps {
+		protocol = "http://"
+	}
+	url := protocol + config.Url
+	err := testEndpoint(url, config.NoVerifySSL)
+	if err != nil {
+		return nil, err
+	}
 	storeOpts := s5store.Options{
 		MaxRetries:  5,
-		Endpoint:    "https://" + config.Url,
-		NoVerifySSL: config.UseHttps,
+		Endpoint:    url,
+		NoVerifySSL: config.NoVerifySSL,
 		DryRun:      false,
 	}
 	storeUrl := &s5url.URL{Type: 0}
@@ -77,12 +88,20 @@ func (c *S5cmdClient) GetFile(object string, bucket string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	rc, err := c.GetClient().Read(context.Background(), storeUrl)
+
+	reader := make([]byte, s5DownloadPartSize)
+	file := aws.NewWriteAtBuffer(reader)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	size, err := c.GetClient().Get(ctx, storeUrl, file, s5UploadConcurrency, s5UploadPartSize)
 	if err != nil {
 		return nil, err
 	}
-	defer rc.Close()
-	return io.ReadAll(rc)
+
+	zap.S().Debugf("[%s] Operation: download, Source: %s, Destination: %s, Size: %d", c.StorageType(), storeUrl, object, size)
+
+	return file.Bytes(), nil
 }
 
 func (c *S5cmdClient) List(bucket string, prefix string) ([]string, error) {
@@ -114,6 +133,7 @@ func (c *S5cmdClient) ListChan(ctx context.Context, bucket string, prefix string
 				if object == nil || object.Err != nil {
 					return
 				}
+				zap.S().Debugf("%v", object.Size)
 				outChan <- strings.TrimPrefix(object.URL.String(), S3url+bucket+"/")
 			case <-ctx.Done():
 				return

@@ -18,6 +18,15 @@ type MinioClient struct {
 }
 
 func newMinioClient(config DataStoreConfig) (*MinioClient, error) {
+	protocol := "https://"
+	if !config.UseHttps {
+		protocol = "http://"
+	}
+	url := protocol + config.Url
+	err := testEndpoint(url, config.NoVerifySSL)
+	if err != nil {
+		return nil, err
+	}
 	minioClient, err := minio.New(config.Url, &minio.Options{
 		Creds:  credentials.NewStaticV4(config.User, config.Password, ""),
 		Secure: config.UseHttps,
