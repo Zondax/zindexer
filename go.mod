@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/ThreeDotsLabs/watermill v1.1.1
+	github.com/aws/aws-sdk-go v1.35.13
 	github.com/coinbase/rosetta-sdk-go v0.6.10
 	github.com/eapache/queue v1.1.0
 	github.com/go-chi/chi v4.0.2+incompatible
@@ -24,7 +25,6 @@ require (
 )
 
 require (
-	github.com/aws/aws-sdk-go v1.35.13 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
