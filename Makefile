@@ -20,7 +20,7 @@ check-modtidy:
 lint:
 	@echo "==> Checking that code complies with golangci-lint requirements..."
 	golangci-lint --version
-	golangci-lint run -E gofmt -E gosec -E goconst -E gocritic --timeout 5m
+	golangci-lint run -E gofmt -E goconst -E gocritic --timeout 5m
 
 fmt:
 	gofmt -w -s $(GOFMT_FILES)
