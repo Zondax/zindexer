@@ -100,8 +100,7 @@ func (c *S5cmdClient) GetFile(object string, bucket string) ([]byte, error) {
 	}
 
 	zap.S().Debugf("[%s] Operation: download, Source: %s, Destination: %s, Size: %d", c.StorageType(), storeUrl, object, size)
-
-	return file.Bytes(), nil
+	return file.Bytes()[:size], nil
 }
 
 func (c *S5cmdClient) List(bucket string, prefix string) ([]string, error) {
