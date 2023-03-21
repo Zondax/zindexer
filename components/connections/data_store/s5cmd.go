@@ -15,10 +15,11 @@ import (
 )
 
 var (
-	s5UploadConcurrency  = 5
-	s5UploadPartSize     = int64(5 * 1024 * 1024) // MiB
-	s5UploadStorageClass = "STANDARD"
-	s5DownloadPartSize   = int64(5 * 1024 * 1024) // MiB
+	s5UploadConcurrency   = 5
+	s5UploadPartSize      = int64(5 * 1024 * 1024) // MiB
+	s5UploadStorageClass  = "STANDARD"
+	s5DownloadPartSize    = int64(5 * 1024 * 1024) // MiB
+	s5DownloadConcurrency = 5
 )
 
 type S5cmdClient struct {
@@ -94,7 +95,7 @@ func (c *S5cmdClient) GetFile(object string, bucket string) ([]byte, error) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	size, err := c.GetClient().Get(ctx, storeUrl, file, s5UploadConcurrency, s5UploadPartSize)
+	size, err := c.GetClient().Get(ctx, storeUrl, file, s5DownloadConcurrency, s5DownloadPartSize)
 	if err != nil {
 		return nil, err
 	}
