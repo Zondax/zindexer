@@ -90,11 +90,19 @@ func (c *S5cmdClient) GetFile(object string, bucket string) ([]byte, error) {
 		return nil, err
 	}
 
-	reader := make([]byte, s5DownloadPartSize)
-	file := aws.NewWriteAtBuffer(reader)
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	obj, err := c.GetClient().Stat(ctx, storeUrl)
+	if err != nil {
+		if err == s5store.ErrGivenObjectNotFound {
+			zap.S().Errorf("[%s] File not found %s", storeUrl.String())
+			return nil, fmt.Errorf("File not found %s", storeUrl.String())
+		}
+		return nil, err
+	}
+	reader := make([]byte, obj.Size)
+	file := aws.NewWriteAtBuffer(reader)
+
 	size, err := c.GetClient().Get(ctx, storeUrl, file, s5DownloadConcurrency, s5DownloadPartSize)
 	if err != nil {
 		return nil, err
