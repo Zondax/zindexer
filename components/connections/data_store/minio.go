@@ -5,6 +5,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/minio/minio-go/v7"
@@ -18,19 +20,19 @@ type MinioClient struct {
 }
 
 func newMinioClient(config DataStoreConfig) (*MinioClient, error) {
-	protocol := "https://"
-	if !config.UseHttps {
-		protocol = "http://"
-	}
-	url := protocol + config.Url
-	err := testEndpoint(url, config.NoVerifySSL)
-	if err != nil {
-		return nil, err
-	}
-	minioClient, err := minio.New(config.Url, &minio.Options{
+	useHTTPS := strings.HasPrefix(config.Url, "https://")
+
+	u, err := url.Parse(config.Url)
+
+	minioClient, err := minio.New(u.Host, &minio.Options{
 		Creds:  credentials.NewStaticV4(config.User, config.Password, ""),
-		Secure: config.UseHttps,
+		Secure: useHTTPS,
 	})
+
+	if config.Tracing {
+		minioClient.TraceOn(nil)
+	}
+
 	if err != nil {
 		zap.S().Error(err.Error())
 		return nil, err
@@ -42,23 +44,19 @@ func newMinioClient(config DataStoreConfig) (*MinioClient, error) {
 	}, nil
 }
 
-func (c *MinioClient) GetClient() *minio.Client {
-	return c.client
-}
-
 func (c *MinioClient) GetContentType() string {
 	return c.contentType
 }
 
-func (c *MinioClient) GetFile(object string, bucket string) ([]byte, error) {
-	if len(bucket) == 0 || len(object) == 0 {
-		zap.S().Errorf("Bucket or object are empty")
-		return nil, fmt.Errorf("Bucket or object are empty")
+func (c *MinioClient) Get(objectName string, bucketName string) ([]byte, error) {
+	if len(bucketName) == 0 || len(objectName) == 0 {
+		zap.S().Errorf("Bucket or objectName are empty")
+		return nil, fmt.Errorf("bucketName or objectName are empty")
 	}
 	start := time.Now()
 	defer elapsed(start, "["+c.StorageType()+"] Get file")
 
-	obj, err := c.GetClient().GetObject(context.Background(), bucket, object, minio.GetObjectOptions{})
+	obj, err := c.client.GetObject(context.Background(), bucketName, objectName, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -74,19 +72,18 @@ func (c *MinioClient) GetFile(object string, bucket string) ([]byte, error) {
 }
 
 func (c *MinioClient) List(bucket string, prefix string) ([]string, error) {
-	return list(c, bucket, prefix)
+	return genericList(c, bucket, prefix)
 }
 
 func (c *MinioClient) ListChan(ctx context.Context, bucket string, prefix string) (<-chan string, error) {
-	if len(bucket) == 0 || len(prefix) == 0 {
-		zap.S().Errorf("Bucket or prefix are empty")
-		return nil, fmt.Errorf("Bucket or prefix are empty")
+	if len(bucket) == 0 {
+		return nil, fmt.Errorf("bucket is empty")
 	}
 
 	start := time.Now()
 	defer elapsed(start, "["+c.StorageType()+"] List channel files")
 
-	exists, err := c.GetClient().BucketExists(ctx, bucket)
+	exists, err := c.client.BucketExists(ctx, bucket)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +96,7 @@ func (c *MinioClient) ListChan(ctx context.Context, bucket string, prefix string
 	go func() {
 		defer close(outChan)
 
-		for object := range c.GetClient().ListObjects(ctx, bucket, minio.ListObjectsOptions{Prefix: prefix, Recursive: true}) {
+		for object := range c.client.ListObjects(ctx, bucket, minio.ListObjectsOptions{Prefix: prefix, Recursive: true}) {
 			select {
 			case <-ctx.Done():
 				return
@@ -112,15 +109,15 @@ func (c *MinioClient) ListChan(ctx context.Context, bucket string, prefix string
 	return outChan, nil
 }
 
-func (c *MinioClient) UploadFromFile(name string, folder string) error {
-	return uploadFromFile(c, name, folder)
+func (c *MinioClient) PutFromFile(srcPath string, dstPath string) error {
+	return putFromFile(c, srcPath, dstPath)
 }
 
-func (c *MinioClient) UploadFromBytes(data []byte, folder string, name string) error {
-	return uploadFromBytes(c, data, folder, name)
+func (c *MinioClient) PutFromBytes(data []byte, dstPath string, dstName string) error {
+	return putFromBytes(c, data, dstPath, dstName)
 }
 
-func (c *MinioClient) UploadFromReader(data io.Reader, size int64, folder string, name string) error {
+func (c *MinioClient) PutFromReader(data io.Reader, size int64, folder string, name string) error {
 	if len(folder) == 0 || len(name) == 0 {
 		zap.S().Errorf("folder or name are empty")
 		return fmt.Errorf("folder or name are empty")
@@ -129,8 +126,11 @@ func (c *MinioClient) UploadFromReader(data io.Reader, size int64, folder string
 	start := time.Now()
 	defer elapsed(start, "["+c.StorageType()+"] Upload from reader")
 
-	_, err := c.GetClient().PutObject(context.Background(), folder, name, data,
-		size, minio.PutObjectOptions{ContentType: c.GetContentType()})
+	_, err := c.client.PutObject(
+		context.Background(),
+		folder, name, data, size,
+		minio.PutObjectOptions{ContentType: c.GetContentType()})
+
 	if err != nil {
 		return err
 	}

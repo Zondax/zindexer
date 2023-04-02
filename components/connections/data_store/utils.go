@@ -18,18 +18,14 @@ func elapsed(start time.Time, message string) {
 	zap.S().Debugf("%s duration %s", message, elapsed)
 }
 
-func list(c IDataStoreClient, bucket string, prefix string) ([]string, error) {
-	if len(bucket) == 0 || len(prefix) == 0 {
-		zap.S().Errorf("Bucket or prefix are empty")
-		return nil, fmt.Errorf("Bucket or prefix are empty")
-	}
-
+func genericList(c IDataStoreClient, bucket string, prefix string) ([]string, error) {
 	start := time.Now()
 	defer elapsed(start, "["+c.StorageType()+"] List files")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	list := []string{}
+
+	var list []string
 	reader, err := c.ListChan(ctx, bucket, prefix)
 	if err != nil {
 		return nil, err
@@ -41,37 +37,39 @@ func list(c IDataStoreClient, bucket string, prefix string) ([]string, error) {
 	return list, nil
 }
 
-func uploadFromFile(c IDataStoreClient, name string, folder string) error {
-	if len(name) == 0 || len(folder) == 0 {
-		zap.S().Errorf("Name or folder are empty")
-		return fmt.Errorf("Name or folder are empty")
+func putFromFile(c IDataStoreClient, srcPath string, dstPath string) error {
+	// FIXME: this is unclear. We take the source name for the output name
+
+	if len(srcPath) == 0 || len(dstPath) == 0 {
+		zap.S().Errorf("srcPath or dstPath are empty")
+		return fmt.Errorf("srcPath or dstPath are empty")
 	}
 
 	start := time.Now()
-	defer elapsed(start, "["+c.StorageType()+"] Upload from file")
+	defer elapsed(start, "["+c.StorageType()+"] Upload from fileReader")
 
-	file, err := os.Open(name)
+	fileReader, err := os.Open(srcPath)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer fileReader.Close()
 
-	fileStat, err := file.Stat()
+	fileStat, err := fileReader.Stat()
 	if err != nil {
 		return err
 	}
 
 	if !fileStat.Mode().IsRegular() {
-		return fmt.Errorf("%s is not a regular file", name)
+		return fmt.Errorf("%s is not a regular fileReader", srcPath)
 	}
 
-	return c.UploadFromReader(file, fileStat.Size(), folder, fileStat.Name())
+	return c.PutFromReader(fileReader, fileStat.Size(), dstPath, fileStat.Name())
 }
 
-func uploadFromBytes(c IDataStoreClient, data []byte, folder string, name string) error {
-	if len(data) == 0 || len(folder) == 0 || len(name) == 0 {
-		zap.S().Errorf("Data, folder or name are empty")
-		return fmt.Errorf("Data, folder or name are empty")
+func putFromBytes(c IDataStoreClient, data []byte, dstPath string, dstName string) error {
+	if len(data) == 0 || len(dstPath) == 0 || len(dstName) == 0 {
+		zap.S().Errorf("Data, dstPath or dstName are empty")
+		return fmt.Errorf("Data, dstPath or dstName are empty")
 	}
 
 	start := time.Now()
@@ -79,10 +77,10 @@ func uploadFromBytes(c IDataStoreClient, data []byte, folder string, name string
 
 	reader := bytes.NewReader(data)
 
-	return c.UploadFromReader(reader, int64(reader.Len()), folder, name)
+	return c.PutFromReader(reader, int64(reader.Len()), dstPath, dstName)
 }
 
-func testEndpoint(url string, skiptls bool) error {
+func testEndpoint(url string, insecureSkipVerify bool) error {
 	transport := http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		Dial: (&net.Dialer{
@@ -90,7 +88,7 @@ func testEndpoint(url string, skiptls bool) error {
 			Timeout:   3 * time.Second,
 			KeepAlive: 30 * time.Second,
 		}).Dial,
-		TLSClientConfig:     &tls.Config{InsecureSkipVerify: skiptls},
+		TLSClientConfig:     &tls.Config{InsecureSkipVerify: insecureSkipVerify},
 		TLSHandshakeTimeout: 10 * time.Second,
 	}
 
@@ -99,5 +97,6 @@ func testEndpoint(url string, skiptls bool) error {
 		Timeout:   5 * time.Second,
 	}
 	_, err := client.Get(url)
+
 	return err
 }

@@ -2,20 +2,16 @@ package data_store
 
 import (
 	"fmt"
-
 	"go.uber.org/zap"
 )
 
 const (
-	S5Storage    = "s5"
-	S3Storage    = "s3"
-	LocalStorage = "local"
-	ContentType  = "application/octet-stream"
-	DataPath     = "data"
-	S3url        = "s3://"
+	ContentType = "application/octet-stream"
+	DataPath    = "data"
+	S3url       = "s3://"
 )
 
-func NewDataStoreClient(config DataStoreConfig) (DataStoreClient, error) {
+func NewDataStoreClient(config DataStoreConfig) (IDataStoreClient, error) {
 	if len(config.ContentType) == 0 {
 		config.ContentType = ContentType
 	}
@@ -26,14 +22,14 @@ func NewDataStoreClient(config DataStoreConfig) (DataStoreClient, error) {
 	switch config.Service {
 	case S5Storage:
 		client, err := newS5cmdClient(config)
-		return DataStoreClient{client}, err
+		return client, err
 	case S3Storage:
 		client, err := newMinioClient(config)
-		return DataStoreClient{client}, err
+		return client, err
 	case LocalStorage:
 		client, err := newLocalClient(config)
-		return DataStoreClient{client}, err
+		return client, err
 	default:
-		return DataStoreClient{}, fmt.Errorf("unrecognized data store service '%s'", config.Service)
+		return nil, fmt.Errorf("unrecognized data store service '%s'", config.Service)
 	}
 }

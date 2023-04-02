@@ -25,10 +25,10 @@ func (c *LocalClient) GetDataPath() string {
 	return c.dataPath
 }
 
-func (c *LocalClient) GetFile(object string, bucket string) ([]byte, error) {
+func (c *LocalClient) Get(object string, bucket string) ([]byte, error) {
 	if len(bucket) == 0 || len(object) == 0 {
-		zap.S().Errorf("Bucket or object are empty")
-		return nil, fmt.Errorf("Bucket or object are empty")
+		zap.S().Errorf("bucket or object are empty")
+		return nil, fmt.Errorf("bucket or object are empty")
 	}
 
 	start := time.Now()
@@ -45,7 +45,7 @@ func (c *LocalClient) GetFile(object string, bucket string) ([]byte, error) {
 }
 
 func (c *LocalClient) List(bucket string, prefix string) ([]string, error) {
-	return list(c, bucket, prefix)
+	return genericList(c, bucket, prefix)
 }
 
 func (c *LocalClient) ListChan(ctx context.Context, bucket string, prefix string) (<-chan string, error) {
@@ -80,15 +80,15 @@ func (c *LocalClient) ListChan(ctx context.Context, bucket string, prefix string
 	return outChan, nil
 }
 
-func (c *LocalClient) UploadFromFile(name string, folder string) error {
-	return uploadFromFile(c, name, folder)
+func (c *LocalClient) PutFromFile(name string, folder string) error {
+	return putFromFile(c, name, folder)
 }
 
-func (c *LocalClient) UploadFromBytes(data []byte, folder string, name string) error {
-	return uploadFromBytes(c, data, folder, name)
+func (c *LocalClient) PutFromBytes(data []byte, folder string, name string) error {
+	return putFromBytes(c, data, folder, name)
 }
 
-func (c *LocalClient) UploadFromReader(data io.Reader, size int64, folder string, name string) error {
+func (c *LocalClient) PutFromReader(data io.Reader, size int64, folder string, name string) error {
 	if len(folder) == 0 || len(name) == 0 {
 		zap.S().Errorf("Folder or name are empty")
 		return fmt.Errorf("Folder or name are empty")

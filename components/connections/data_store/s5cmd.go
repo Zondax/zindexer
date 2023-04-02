@@ -34,26 +34,24 @@ type S5cmdList struct {
 }
 
 func newS5cmdClient(config DataStoreConfig) (*S5cmdClient, error) {
-	protocol := "https://"
-	if !config.UseHttps {
-		protocol = "http://"
-	}
-	url := protocol + config.Url
-	err := testEndpoint(url, config.NoVerifySSL)
+	err := testEndpoint(config.Url, config.InsecureSkipVerify)
+
 	if err != nil {
 		return nil, err
 	}
 	storeOpts := s5store.Options{
 		MaxRetries:  5,
-		Endpoint:    url,
-		NoVerifySSL: config.NoVerifySSL,
+		Endpoint:    config.Url,
+		NoVerifySSL: config.InsecureSkipVerify,
 		DryRun:      false,
 	}
 	storeUrl := &s5url.URL{Type: 0}
+
 	os.Setenv("AWS_ACCESS_KEY", config.User)
 	os.Setenv("AWS_SECRET_KEY", config.Password)
 	defer os.Unsetenv("AWS_ACCESS_KEY")
 	defer os.Unsetenv("AWS_SECRET_KEY")
+
 	client, err := s5store.NewRemoteClient(context.Background(), storeUrl, storeOpts)
 	if err != nil {
 		zap.S().Error(err.Error())
@@ -68,18 +66,14 @@ func newS5cmdClient(config DataStoreConfig) (*S5cmdClient, error) {
 	}, nil
 }
 
-func (c *S5cmdClient) GetClient() *s5store.S3 {
-	return c.client
-}
-
 func (c *S5cmdClient) GetContentType() string {
 	return c.contentType
 }
 
-func (c *S5cmdClient) GetFile(object string, bucket string) ([]byte, error) {
+func (c *S5cmdClient) Get(object string, bucket string) ([]byte, error) {
 	if len(bucket) == 0 || len(object) == 0 {
 		zap.S().Errorf("Bucket or object are empty")
-		return nil, fmt.Errorf("Bucket or object are empty")
+		return nil, fmt.Errorf("bucket or object are empty")
 	}
 
 	start := time.Now()
@@ -92,7 +86,7 @@ func (c *S5cmdClient) GetFile(object string, bucket string) ([]byte, error) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	obj, err := c.GetClient().Stat(ctx, storeUrl)
+	obj, err := c.client.Stat(ctx, storeUrl)
 	if err != nil {
 		if err == s5store.ErrGivenObjectNotFound {
 			zap.S().Errorf("[%s] File not found %s", storeUrl.String())
@@ -103,7 +97,7 @@ func (c *S5cmdClient) GetFile(object string, bucket string) ([]byte, error) {
 	reader := make([]byte, obj.Size)
 	file := aws.NewWriteAtBuffer(reader)
 
-	size, err := c.GetClient().Get(ctx, storeUrl, file, s5DownloadConcurrency, s5DownloadPartSize)
+	size, err := c.client.Get(ctx, storeUrl, file, s5DownloadConcurrency, s5DownloadPartSize)
 	if err != nil {
 		return nil, err
 	}
@@ -113,11 +107,11 @@ func (c *S5cmdClient) GetFile(object string, bucket string) ([]byte, error) {
 }
 
 func (c *S5cmdClient) List(bucket string, prefix string) ([]string, error) {
-	return list(c, bucket, prefix)
+	return genericList(c, bucket, prefix)
 }
 
 func (c *S5cmdClient) ListChan(ctx context.Context, bucket string, prefix string) (<-chan string, error) {
-	if len(bucket) == 0 || len(prefix) == 0 {
+	if len(bucket) == 0 {
 		zap.S().Errorf("Bucket or prefix are empty")
 		return nil, fmt.Errorf("Bucket or prefix are empty")
 	}
@@ -134,7 +128,7 @@ func (c *S5cmdClient) ListChan(ctx context.Context, bucket string, prefix string
 	go func() {
 		defer close(outChan)
 
-		reader := c.GetClient().List(ctx, storeUrl, false)
+		reader := c.client.List(ctx, storeUrl, false)
 		for {
 			select {
 			case object := <-reader:
@@ -152,15 +146,15 @@ func (c *S5cmdClient) ListChan(ctx context.Context, bucket string, prefix string
 	return outChan, nil
 }
 
-func (c *S5cmdClient) UploadFromFile(name string, folder string) error {
-	return uploadFromFile(c, name, folder)
+func (c *S5cmdClient) PutFromFile(name string, folder string) error {
+	return putFromFile(c, name, folder)
 }
 
-func (c *S5cmdClient) UploadFromBytes(data []byte, folder string, name string) error {
-	return uploadFromBytes(c, data, folder, name)
+func (c *S5cmdClient) PutFromBytes(data []byte, folder string, name string) error {
+	return putFromBytes(c, data, folder, name)
 }
 
-func (c *S5cmdClient) UploadFromReader(data io.Reader, size int64, folder string, name string) error {
+func (c *S5cmdClient) PutFromReader(data io.Reader, size int64, folder string, name string) error {
 	if len(folder) == 0 || len(name) == 0 {
 		zap.S().Errorf("folder or name are empty")
 		return fmt.Errorf("folder or name are empty")
@@ -179,7 +173,7 @@ func (c *S5cmdClient) UploadFromReader(data io.Reader, size int64, folder string
 		SetContentType(c.GetContentType())
 
 	ctx := context.Background()
-	err = c.GetClient().Put(ctx, data, destUrl, metadata, s5UploadConcurrency, s5UploadPartSize)
+	err = c.client.Put(ctx, data, destUrl, metadata, s5UploadConcurrency, s5UploadPartSize)
 	if err != nil {
 		return err
 	}
