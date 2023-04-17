@@ -13,6 +13,8 @@ type IDataStoreClient interface {
 	List(dir string, prefix string) ([]string, error)
 	ListChan(ctx context.Context, dir string, prefix string) (<-chan string, error)
 	StorageType() string
+	DeleteFile(name string, location string) error
+	RenameFile(oldName string, newName string, bucket string) error
 }
 
 type DataStoreClient struct {

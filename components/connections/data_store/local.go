@@ -25,6 +25,33 @@ func (c *LocalClient) GetDataPath() string {
 	return c.dataPath
 }
 
+func (c *LocalClient) RenameFile(oldObject string, newObject string, bucket string) error {
+	if len(bucket) == 0 || len(oldObject) == 0 || len(newObject) == 0 {
+		zap.S().Errorf("Bucket, oldObject or newObject are empty")
+		return fmt.Errorf("Bucket, oldObject or newObject are empty")
+	}
+
+	start := time.Now()
+	defer elapsed(start, "["+c.StorageType()+"] Rename file")
+
+	originObject := fmt.Sprintf("%s/%s/%s", c.GetDataPath(), bucket, oldObject)
+	targetObject := fmt.Sprintf("%s/%s/%s", c.GetDataPath(), bucket, newObject)
+	return os.Rename(originObject, targetObject)
+}
+
+func (c *LocalClient) DeleteFile(object string, bucket string) error {
+	if len(bucket) == 0 || len(object) == 0 {
+		zap.S().Errorf("Bucket or object are empty")
+		return fmt.Errorf("Bucket or object are empty")
+	}
+
+	start := time.Now()
+	defer elapsed(start, "["+c.StorageType()+"] Delete file")
+
+	targetObject := fmt.Sprintf("%s/%s/%s", c.GetDataPath(), bucket, object)
+	return os.Remove(targetObject)
+}
+
 func (c *LocalClient) GetFile(object string, bucket string) ([]byte, error) {
 	if len(bucket) == 0 || len(object) == 0 {
 		zap.S().Errorf("Bucket or object are empty")
