@@ -76,6 +76,48 @@ func (c *S5cmdClient) GetContentType() string {
 	return c.contentType
 }
 
+func (c *S5cmdClient) RenameFile(oldObject string, newObject string, bucket string) error {
+	if len(bucket) == 0 || len(oldObject) == 0 || len(newObject) == 0 {
+		zap.S().Errorf("Bucket, oldObject or newObject are empty")
+		return fmt.Errorf("Bucket, oldObject or newObject are empty")
+	}
+
+	start := time.Now()
+	defer elapsed(start, "["+c.StorageType()+"] Rename file")
+
+	srcUrl, err := s5url.New(S3url + bucket + "/" + oldObject)
+	if err != nil {
+		return err
+	}
+
+	dstUrl, err := s5url.New(S3url + bucket + "/" + newObject)
+	if err != nil {
+		return err
+	}
+
+	metadata := s5store.NewMetadata().
+		SetStorageClass(string(s5UploadStorageClass)).
+		SetContentType(c.GetContentType())
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	_, err = c.GetClient().Stat(ctx, srcUrl)
+	if err != nil {
+		if err == s5store.ErrGivenObjectNotFound {
+			zap.S().Infof("[%s] Trying to rename file not found %s", srcUrl.String())
+			return fmt.Errorf("File not found %s", srcUrl.String())
+		}
+		return err
+	}
+
+	err = c.GetClient().Copy(ctx, srcUrl, dstUrl, metadata)
+	if err != nil {
+		return err
+	}
+
+	return c.DeleteFile(oldObject, bucket)
+}
+
 func (c *S5cmdClient) DeleteFile(object string, bucket string) error {
 	if len(bucket) == 0 || len(object) == 0 {
 		zap.S().Errorf("Bucket or object are empty")

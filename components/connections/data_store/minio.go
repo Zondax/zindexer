@@ -50,6 +50,32 @@ func (c *MinioClient) GetContentType() string {
 	return c.contentType
 }
 
+func (c *MinioClient) RenameFile(oldObject string, newObject string, bucket string) error {
+	if len(bucket) == 0 || len(oldObject) == 0 || len(newObject) == 0 {
+		zap.S().Errorf("Bucket, oldObject or newObject are empty")
+		return fmt.Errorf("Bucket, oldObject or newObject are empty")
+	}
+
+	start := time.Now()
+	defer elapsed(start, "["+c.StorageType()+"] Rename file")
+
+	src := minio.CopySrcOptions{
+		Bucket: bucket,
+		Object: oldObject,
+	}
+	dst := minio.CopyDestOptions{
+		Bucket: bucket,
+		Object: newObject,
+	}
+
+	_, err := c.GetClient().CopyObject(context.Background(), dst, src)
+	if err != nil {
+		return err
+	}
+
+	return c.DeleteFile(oldObject, bucket)
+}
+
 func (c *MinioClient) DeleteFile(object string, bucket string) error {
 	if len(bucket) == 0 || len(object) == 0 {
 		zap.S().Errorf("Bucket or object are empty")
