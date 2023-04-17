@@ -76,6 +76,34 @@ func (c *S5cmdClient) GetContentType() string {
 	return c.contentType
 }
 
+func (c *S5cmdClient) DeleteFile(object string, bucket string) error {
+	if len(bucket) == 0 || len(object) == 0 {
+		zap.S().Errorf("Bucket or object are empty")
+		return fmt.Errorf("Bucket or object are empty")
+	}
+
+	start := time.Now()
+	defer elapsed(start, "["+c.StorageType()+"] Delete file")
+
+	storeUrl, err := s5url.New(S3url + bucket + "/" + object)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	_, err = c.GetClient().Stat(ctx, storeUrl)
+	if err != nil {
+		if err == s5store.ErrGivenObjectNotFound {
+			zap.S().Infof("[%s] Trying to delete file not found %s", storeUrl.String())
+			return nil
+		}
+		return err
+	}
+
+	return c.GetClient().Delete(ctx, storeUrl)
+}
+
 func (c *S5cmdClient) GetFile(object string, bucket string) ([]byte, error) {
 	if len(bucket) == 0 || len(object) == 0 {
 		zap.S().Errorf("Bucket or object are empty")

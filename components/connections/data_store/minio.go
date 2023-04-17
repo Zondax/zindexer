@@ -50,11 +50,24 @@ func (c *MinioClient) GetContentType() string {
 	return c.contentType
 }
 
+func (c *MinioClient) DeleteFile(object string, bucket string) error {
+	if len(bucket) == 0 || len(object) == 0 {
+		zap.S().Errorf("Bucket or object are empty")
+		return fmt.Errorf("Bucket or object are empty")
+	}
+
+	start := time.Now()
+	defer elapsed(start, "["+c.StorageType()+"] Delete file")
+
+	return c.GetClient().RemoveObject(context.Background(), bucket, object, minio.RemoveObjectOptions{})
+}
+
 func (c *MinioClient) GetFile(object string, bucket string) ([]byte, error) {
 	if len(bucket) == 0 || len(object) == 0 {
 		zap.S().Errorf("Bucket or object are empty")
 		return nil, fmt.Errorf("Bucket or object are empty")
 	}
+
 	start := time.Now()
 	defer elapsed(start, "["+c.StorageType()+"] Get file")
 
