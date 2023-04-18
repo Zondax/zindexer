@@ -169,6 +169,7 @@ func (c *MinioClient) ListChan(ctx context.Context, bucket string, prefix string
 	}
 
 	listPrefix := wildcardPrefix(prefix)
+	isWildcard := isWildcard(prefix)
 	outChan := make(chan string, 10)
 	go func() {
 		defer close(outChan)
@@ -178,7 +179,7 @@ func (c *MinioClient) ListChan(ctx context.Context, bucket string, prefix string
 			case <-ctx.Done():
 				return
 			default:
-				if !isWildcardMatch(prefix, object.Key) {
+				if isWildcard && !isWildcardMatch(prefix, object.Key) {
 					zap.S().Debugf("[%s] File [%s] doesn't match with wildcard [%s], skipping...", c.StorageType(), object.Key, prefix)
 					continue
 				}
