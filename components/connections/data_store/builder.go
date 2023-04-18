@@ -13,6 +13,7 @@ const (
 	ContentType  = "application/octet-stream"
 	DataPath     = "data"
 	S3url        = "s3://"
+	Localurl     = "file://"
 )
 
 func NewDataStoreClient(config DataStoreConfig) (DataStoreClient, error) {

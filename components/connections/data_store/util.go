@@ -8,14 +8,34 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"regexp"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
 )
 
+const globCharacters string = "?*"
+
 func elapsed(start time.Time, message string) {
 	elapsed := time.Since(start)
 	zap.S().Debugf("%s duration %s", message, elapsed)
+}
+
+func isWildcard(s string) bool {
+	return strings.ContainsAny(s, globCharacters)
+}
+
+func wildcardPrefix(s string) string {
+	return s[:strings.IndexAny(s, globCharacters)]
+}
+
+func isWildcardMatch(exp, s string) bool {
+	rexp := strings.ReplaceAll(exp, ".", "\\.")
+	rexp = strings.ReplaceAll(rexp, "?", ".")
+	rexp = strings.ReplaceAll(rexp, "*", ".*")
+	re := regexp.MustCompile(rexp)
+	return re.MatchString(s)
 }
 
 func list(c IDataStoreClient, bucket string, prefix string) ([]string, error) {
