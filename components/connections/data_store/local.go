@@ -39,7 +39,7 @@ func (c *LocalClient) RenameFile(oldObject string, newObject string, bucket stri
 	return os.Rename(originObject, targetObject)
 }
 
-func (c *LocalClient) DeleteFile(object string, bucket string) error {
+func (c *LocalClient) DeleteFiles(object string, bucket string) error {
 	if len(bucket) == 0 || len(object) == 0 {
 		zap.S().Errorf("Bucket or object are empty")
 		return fmt.Errorf("Bucket or object are empty")
@@ -48,8 +48,42 @@ func (c *LocalClient) DeleteFile(object string, bucket string) error {
 	start := time.Now()
 	defer elapsed(start, "["+c.StorageType()+"] Delete file")
 
-	targetObject := fmt.Sprintf("%s/%s/%s", c.GetDataPath(), bucket, object)
-	return os.Remove(targetObject)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	return c.deleteFiles(ctx, object, bucket)
+}
+
+func (c *LocalClient) deleteFiles(ctx context.Context, object string, bucket string) error {
+	if len(bucket) == 0 || len(object) == 0 {
+		zap.S().Errorf("Bucket or object are empty")
+		return fmt.Errorf("Bucket or object are empty")
+	}
+
+	start := time.Now()
+	defer elapsed(start, "["+c.StorageType()+"] Delete files")
+
+	toDelete, err := c.ListChan(ctx, bucket, object)
+	if err != nil {
+		return err
+	}
+
+	for {
+		select {
+		case url := <-toDelete:
+			if len(url) == 0 {
+				return nil
+			}
+			storeUrl := fmt.Sprintf("%s/%s/%s", c.GetDataPath(), bucket, url)
+			err = os.Remove(storeUrl)
+			if err != nil {
+				return err
+			}
+			zap.S().Debugf("[%s] Removed file %s%s", c.StorageType(), Localurl, storeUrl)
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
 }
 
 func (c *LocalClient) GetFile(object string, bucket string) ([]byte, error) {

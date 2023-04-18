@@ -115,10 +115,10 @@ func (c *S5cmdClient) RenameFile(oldObject string, newObject string, bucket stri
 		return err
 	}
 
-	return c.DeleteFile(oldObject, bucket)
+	return c.DeleteFiles(oldObject, bucket)
 }
 
-func (c *S5cmdClient) DeleteFile(object string, bucket string) error {
+func (c *S5cmdClient) DeleteFiles(object string, bucket string) error {
 	if len(bucket) == 0 || len(object) == 0 {
 		zap.S().Errorf("Bucket or object are empty")
 		return fmt.Errorf("Bucket or object are empty")
@@ -127,23 +127,45 @@ func (c *S5cmdClient) DeleteFile(object string, bucket string) error {
 	start := time.Now()
 	defer elapsed(start, "["+c.StorageType()+"] Delete file")
 
-	storeUrl, err := s5url.New(S3url + bucket + "/" + object)
-	if err != nil {
-		return err
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	_, err = c.GetClient().Stat(ctx, storeUrl)
+
+	return c.deleteFiles(ctx, object, bucket)
+}
+
+func (c *S5cmdClient) deleteFiles(ctx context.Context, object string, bucket string) error {
+	if len(bucket) == 0 || len(object) == 0 {
+		zap.S().Errorf("Bucket or object are empty")
+		return fmt.Errorf("Bucket or object are empty")
+	}
+
+	start := time.Now()
+	defer elapsed(start, "["+c.StorageType()+"] Delete files")
+
+	toDelete, err := c.ListChan(ctx, bucket, object)
 	if err != nil {
-		if err == s5store.ErrGivenObjectNotFound {
-			zap.S().Infof("[%s] Trying to delete file not found %s", storeUrl.String())
-			return nil
-		}
 		return err
 	}
 
-	return c.GetClient().Delete(ctx, storeUrl)
+	for {
+		select {
+		case url := <-toDelete:
+			if len(url) == 0 {
+				return nil
+			}
+			storeUrl, err := s5url.New(S3url + bucket + "/" + url)
+			if err != nil {
+				return err
+			}
+			err = c.GetClient().Delete(ctx, storeUrl)
+			if err != nil {
+				return err
+			}
+			zap.S().Debugf("[%s] Removed file %s", c.StorageType(), storeUrl.String())
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
 }
 
 func (c *S5cmdClient) GetFile(object string, bucket string) ([]byte, error) {
@@ -165,7 +187,7 @@ func (c *S5cmdClient) GetFile(object string, bucket string) ([]byte, error) {
 	obj, err := c.GetClient().Stat(ctx, storeUrl)
 	if err != nil {
 		if err == s5store.ErrGivenObjectNotFound {
-			zap.S().Errorf("[%s] File not found %s", storeUrl.String())
+			zap.S().Errorf("[%s] File not found %s", c.StorageType(), storeUrl.String())
 			return nil, fmt.Errorf("File not found %s", storeUrl.String())
 		}
 		return nil, err
@@ -211,7 +233,6 @@ func (c *S5cmdClient) ListChan(ctx context.Context, bucket string, prefix string
 				if object == nil || object.Err != nil {
 					return
 				}
-				zap.S().Debugf("%v", object.Size)
 				outChan <- strings.TrimPrefix(object.URL.String(), S3url+bucket+"/")
 			case <-ctx.Done():
 				return

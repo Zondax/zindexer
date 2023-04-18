@@ -73,10 +73,10 @@ func (c *MinioClient) RenameFile(oldObject string, newObject string, bucket stri
 		return err
 	}
 
-	return c.DeleteFile(oldObject, bucket)
+	return c.DeleteFiles(oldObject, bucket)
 }
 
-func (c *MinioClient) DeleteFile(object string, bucket string) error {
+func (c *MinioClient) DeleteFiles(object string, bucket string) error {
 	if len(bucket) == 0 || len(object) == 0 {
 		zap.S().Errorf("Bucket or object are empty")
 		return fmt.Errorf("Bucket or object are empty")
@@ -85,7 +85,41 @@ func (c *MinioClient) DeleteFile(object string, bucket string) error {
 	start := time.Now()
 	defer elapsed(start, "["+c.StorageType()+"] Delete file")
 
-	return c.GetClient().RemoveObject(context.Background(), bucket, object, minio.RemoveObjectOptions{})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	return c.deleteFiles(ctx, object, bucket)
+}
+
+func (c *MinioClient) deleteFiles(ctx context.Context, object string, bucket string) error {
+	if len(bucket) == 0 || len(object) == 0 {
+		zap.S().Errorf("Bucket or object are empty")
+		return fmt.Errorf("Bucket or object are empty")
+	}
+
+	start := time.Now()
+	defer elapsed(start, "["+c.StorageType()+"] Delete files")
+
+	toDelete, err := c.ListChan(ctx, bucket, object)
+	if err != nil {
+		return err
+	}
+
+	for {
+		select {
+		case url := <-toDelete:
+			if len(url) == 0 {
+				return nil
+			}
+			err = c.GetClient().RemoveObject(ctx, bucket, url, minio.RemoveObjectOptions{})
+			if err != nil {
+				return err
+			}
+			zap.S().Debugf("[%s] Removed file %s%s/%s", c.StorageType(), S3url, bucket, url)
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
 }
 
 func (c *MinioClient) GetFile(object string, bucket string) ([]byte, error) {
@@ -134,15 +168,21 @@ func (c *MinioClient) ListChan(ctx context.Context, bucket string, prefix string
 		return nil, fmt.Errorf("bucket '%s' doesn't exists", bucket)
 	}
 
+	listPrefix := wildcardPrefix(prefix)
+	isWildcard := isWildcard(prefix)
 	outChan := make(chan string, 10)
 	go func() {
 		defer close(outChan)
 
-		for object := range c.GetClient().ListObjects(ctx, bucket, minio.ListObjectsOptions{Prefix: prefix, Recursive: true}) {
+		for object := range c.GetClient().ListObjects(ctx, bucket, minio.ListObjectsOptions{Prefix: listPrefix, Recursive: true}) {
 			select {
 			case <-ctx.Done():
 				return
 			default:
+				if isWildcard && !isWildcardMatch(prefix, object.Key) {
+					zap.S().Debugf("[%s] File [%s] doesn't match with wildcard [%s], skipping...", c.StorageType(), object.Key, prefix)
+					continue
+				}
 				outChan <- object.Key
 			}
 		}
