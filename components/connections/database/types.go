@@ -34,3 +34,9 @@ func (p *DBConnectionParams) GetDSN() (string, error) {
 		"user=%s password=%s dbname=%s host=%s port=%s sslmode=disable",
 		p.User, p.Password, p.Name, p.Host, p.Port), nil
 }
+
+func (p *DBConnectionParams) GetClickHouseDSN() (string, error) {
+	return fmt.Sprintf(
+		"clickhouse://%s:%s@%s:%s/%s?dial_timeout=10s&read_timeout=20s",
+		p.User, p.Password, p.Host, p.Port, p.Name), nil
+}
