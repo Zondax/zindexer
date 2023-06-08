@@ -21,6 +21,7 @@ type DBConnectionParams struct {
 	Name     string
 	Host     string
 	Port     string
+	Params   string
 	URI      string
 }
 
