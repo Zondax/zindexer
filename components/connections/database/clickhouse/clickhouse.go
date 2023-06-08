@@ -33,6 +33,10 @@ func NewClickHouseConnection(params *database.DBConnectionParams, config DBConne
 		params.URI = fmt.Sprintf(
 			"clickhouse://%s:%s@%s:%s/%s",
 			params.User, params.Password, params.Host, params.Port, params.Name)
+
+		if params.Params != "" {
+			params.URI = fmt.Sprintf("%s?%s", params.URI, params.Params)
+		}
 	}
 
 	var dbConfig gorm.Config
