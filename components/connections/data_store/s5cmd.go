@@ -3,6 +3,7 @@ package data_store
 import (
 	"context"
 	"fmt"
+	"github.com/peak/s5cmd/log"
 	"io"
 	"os"
 	"strings"
@@ -59,6 +60,8 @@ func newS5cmdClient(config DataStoreConfig) (*S5cmdClient, error) {
 		zap.S().Error(err.Error())
 		return nil, err
 	}
+
+	log.Init("error", true)
 
 	return &S5cmdClient{
 		client:      client,
