@@ -1,6 +1,6 @@
 module github.com/Zondax/zindexer
 
-go 1.19
+go 1.20
 
 require (
 	github.com/ThreeDotsLabs/watermill v1.1.1
