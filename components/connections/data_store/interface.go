@@ -2,6 +2,7 @@ package data_store
 
 import (
 	"context"
+	"fmt"
 	"io"
 )
 
@@ -31,3 +32,9 @@ type DataStoreConfig struct {
 	DataPath    string
 	ContentType string
 }
+
+// Errors
+
+var (
+	ErrFileNotFound = fmt.Errorf("file not found")
+)

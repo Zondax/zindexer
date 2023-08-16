@@ -2,6 +2,7 @@ package data_store
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/peak/s5cmd/log"
 	"io"
@@ -106,9 +107,9 @@ func (c *S5cmdClient) RenameFile(oldObject string, newObject string, bucket stri
 	defer cancel()
 	_, err = c.GetClient().Stat(ctx, srcUrl)
 	if err != nil {
-		if err == s5store.ErrGivenObjectNotFound {
-			zap.S().Infof("[%s] Trying to rename file not found %s", srcUrl.String())
-			return fmt.Errorf("File not found %s", srcUrl.String())
+		if errors.Is(err, s5store.ErrGivenObjectNotFound) || errors.Is(err, s5store.ErrNoObjectFound) {
+			zap.S().Errorf("Couldn't rename file, file '%s' doesn't exist", srcUrl.String())
+			return ErrFileNotFound
 		}
 		return err
 	}
@@ -189,9 +190,9 @@ func (c *S5cmdClient) GetFile(object string, bucket string) ([]byte, error) {
 	defer cancel()
 	obj, err := c.GetClient().Stat(ctx, storeUrl)
 	if err != nil {
-		if err == s5store.ErrGivenObjectNotFound {
-			zap.S().Errorf("[%s] File not found %s", c.StorageType(), storeUrl.String())
-			return nil, fmt.Errorf("File not found %s", storeUrl.String())
+		if errors.Is(err, s5store.ErrGivenObjectNotFound) || errors.Is(err, s5store.ErrNoObjectFound) {
+			zap.S().Errorf("Couldn't rename file, file '%s' doesn't exist", storeUrl.String())
+			return nil, ErrFileNotFound
 		}
 		return nil, err
 	}
@@ -200,6 +201,10 @@ func (c *S5cmdClient) GetFile(object string, bucket string) ([]byte, error) {
 
 	size, err := c.GetClient().Get(ctx, storeUrl, file, s5DownloadConcurrency, s5DownloadPartSize)
 	if err != nil {
+		if errors.Is(err, s5store.ErrGivenObjectNotFound) || errors.Is(err, s5store.ErrNoObjectFound) {
+			zap.S().Errorf("Couldn't rename file, file '%s' doesn't exist", storeUrl.String())
+			return nil, ErrFileNotFound
+		}
 		return nil, err
 	}
 
@@ -269,7 +274,7 @@ func (c *S5cmdClient) UploadFromReader(data io.Reader, size int64, folder string
 	}
 
 	metadata := s5store.NewMetadata().
-		SetStorageClass(string(s5UploadStorageClass)).
+		SetStorageClass(s5UploadStorageClass).
 		SetContentType(c.GetContentType())
 
 	ctx := context.Background()
