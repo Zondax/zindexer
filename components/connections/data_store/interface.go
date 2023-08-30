@@ -23,14 +23,16 @@ type DataStoreClient struct {
 }
 
 type DataStoreConfig struct {
-	Url         string
-	UseHttps    bool
-	NoVerifySSL bool
-	User        string
-	Password    string
-	Service     string
-	DataPath    string
-	ContentType string
+	Url            string
+	UseHttps       bool
+	NoVerifySSL    bool
+	User           string
+	Password       string
+	Service        string
+	DataPath       string
+	ContentType    string
+	S3MaxRetries   int
+	S3DelayRetries int
 }
 
 // Errors
